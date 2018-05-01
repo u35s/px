@@ -17,10 +17,13 @@ ProxyClient::ProxyClient(const int& fd,const struct sockaddr_in& addr):
 	};
 
 ProxyClient::~ProxyClient(){
-	spdlog::get("console")->info("client {:s}:{:d} closed,err:{:s}",
-			inet_ntoa(client_addr_.sin_addr),client_addr_.sin_port,err_);
+	spdlog::get("console")->info("{:s}:{:d}->{:s}:{:d} closed,err:{:s}",
+			inet_ntoa(client_addr_.sin_addr),client_addr_.sin_port,
+			inet_ntoa(remote_addr_.sin_addr),remote_addr_.sin_port,err_);
 
-	xlib::print_stack();
+	if (err_ != "") {
+		xlib::print_stack();
+	}
 	client_io_.stop();
 	close(clientfd_);
 	if (parsed_) {
@@ -42,7 +45,9 @@ void ProxyClient::ParseRequest(ev::io &watcher, int revents){
 			if (errno==EAGAIN) {
 				return;
 			} else {
-				spdlog::get("console")->info("parse requet error {:s},code:{:d}",strerror(errno),nread);
+				spdlog::get("console")->info("{:s}:{:d},parse requet error {:s},code:{:d}",
+						inet_ntoa(client_addr_.sin_addr),client_addr_.sin_port,
+						strerror(errno),nread);
 				delete this;
 				return;
 			}
@@ -121,8 +126,8 @@ void ProxyClient::ParseRequest(ev::io &watcher, int revents){
 	remote_addr_.sin_addr.s_addr = inet_addr(ip);
 	remote_addr_.sin_port = htons(std::stoi(used_port));
 
-	spdlog::get("console")->info("new request {:s}:{:s} over {:s}:{:s},ip:{:s}:{:d},{},{:s}",
-			host,port,used_host,used_port,ip,ntohs(remote_addr_.sin_port),proto=="https",parsed_buf_.str());
+	spdlog::get("console")->info("new request {:s}:{:s} over {:s}:{:s},ip:{:s}:{:d},{}",
+			host,port,used_host,used_port,ip,ntohs(remote_addr_.sin_port),proto=="https");
 
 	char bt[1] = {'\n'};
 	first_buf_.sputn(bt,1);	
@@ -151,8 +156,8 @@ void ProxyClient::ParseRequest(ev::io &watcher, int revents){
 
 void ProxyClient::ClientCallback(ev::io &watcher, int revents) {
 	if (EV_ERROR & revents) {
+		// 此处不delete this
 		spdlog::get("console")->info("client callback got invalid event {:s}",strerror(errno));
-		delete this;
 		return;
 	}
 
@@ -181,7 +186,8 @@ void ProxyClient::ClientReadCallback(ev::io &watcher) {
 		if (errno==EAGAIN) {
 			return;
 		} else {
-			spdlog::get("console")->info("client read error {:s},code:{:d}",strerror(errno),nread);
+			spdlog::get("console")->info("client read error {:s},code:{:d}",
+					strerror(errno),nread);
 			delete this;
 			return;
 		}
@@ -205,7 +211,8 @@ void ProxyClient::ClientWriteCallback(ev::io &watcher) {
 		if (errno==EAGAIN) {
 			return;
 		} else {
-			spdlog::get("console")->info("client write error {:s},code:{:d}",strerror(errno),written);
+			spdlog::get("console")->info("client write error {:s},code:{:d}",
+					strerror(errno),written);
 			delete this;
 			return;
 		}
@@ -227,8 +234,8 @@ void ProxyClient::ClientWriteCallback(ev::io &watcher) {
 
 void ProxyClient::RemoteCallback(ev::io &watcher, int revents) {
 	if (EV_ERROR & revents) {
-		delete this;
-		std::perror("remote callback got invalid event");
+		// 此处不delete this
+		spdlog::get("console")->info("remote callback got invalid event {:s}",strerror(errno));
 		return;
 	}
 

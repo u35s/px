@@ -50,10 +50,7 @@ void ProxyServer::Accept(ev::io& watcher, int revents){
 
 	int client_fd = accept(watcher.fd, (struct sockaddr *)&client_addr, &client_len);
 
-	if (client_fd == 0) {
-	    spdlog::get("console")->info("accept error {:s},code:{:d}",strerror(errno),client_fd);
-		Accept(watcher,revents);
-	}else if (client_fd < 0) {
+	if (client_fd == -1) {
 	    spdlog::get("console")->info("accept error {:s},code:{:d}",strerror(errno),client_fd);
 		return;
 	}
