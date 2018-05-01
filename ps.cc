@@ -11,6 +11,8 @@ ProxyServer::ProxyServer(int port){
 	    spdlog::get("console")->info("accept error {:s},code:{:d}",strerror(errno),serverfd_);
 		return;
 	}
+	int option = 1;
+	setsockopt(serverfd_, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
 
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;

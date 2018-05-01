@@ -6,8 +6,8 @@
 
 ProxyClient::ProxyClient(const int& fd,const struct sockaddr_in& addr):
 	clientfd_(fd),client_addr_(addr){
-		spdlog::get("console")->info("new client form {:s}:{:d},fd {:d}",
-				inet_ntoa(client_addr_.sin_addr),ntohl(client_addr_.sin_port),fd);
+		spdlog::get("console")->info("new client form {:s}:{},fd {:d}",
+				inet_ntoa(client_addr_.sin_addr),ntohs(client_addr_.sin_port),fd);
 
 		remote_addr_.sin_family = AF_INET;
 
@@ -122,7 +122,11 @@ void ProxyClient::ParseRequest(ev::io &watcher, int revents){
 		used_host = std::string(conf_domain);
 		used_port = std::string(conf_port);
 	}
-	xlib::get_ip_by_domain(used_host.c_str(),ip);
+	if (xlib::get_ip_by_domain(used_host.c_str(),ip) < 0) {
+		err_ = (boost::format("geti %s ip error:%s") %used_host %strerror(errno)).str();  
+		delete this;
+		return;
+	}
 	remote_addr_.sin_addr.s_addr = inet_addr(ip);
 	remote_addr_.sin_port = htons(std::stoi(used_port));
 
@@ -145,6 +149,14 @@ void ProxyClient::ParseRequest(ev::io &watcher, int revents){
 		remote_write_queue_.push_back(new xlib::Buffer(parsed_buf_.str().c_str(),parsed_buf_.str().size()));
 	}
 	remotefd_ = xlib::connect_to(&remote_addr_);
+	if (remotefd_ < 0){
+		spdlog::get("console")->info("{:s}:{:d},connect to error {:s},code:{:d}",
+				inet_ntoa(client_addr_.sin_addr),client_addr_.sin_port,
+				strerror(errno),remotefd_);
+		delete this;
+		return;
+	}
+	parsed_ = true;
 
 	fcntl(remotefd_, F_SETFL, fcntl(remotefd_, F_GETFL, 0) | O_NONBLOCK); 
 	remote_io_.set<ProxyClient, &ProxyClient::RemoteCallback>(this);

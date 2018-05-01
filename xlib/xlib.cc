@@ -22,8 +22,9 @@ int connect_to(struct sockaddr_in* addr) {
     int fd = socket(PF_INET, SOCK_STREAM, 0);
     unsigned long ul = 3;
     ioctl(fd, FIOASYNC, &ul);
-	if (connect(fd, (struct sockaddr *)addr, sizeof(*addr)) != 0) {
-        std::perror("connect");
+	if (int res = connect(fd, (struct sockaddr *)addr, sizeof(*addr)) < 0) {
+		close(fd);
+		return res;
 	}
 	return fd;
 }
