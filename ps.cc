@@ -61,6 +61,7 @@ void ProxyServer::Accept(ev::io& watcher, int revents){
 }
 
 void ProxyServer::SignalCallback(ev::sig &signal, int revents) {
-		signal.loop.break_loop();
+	spdlog::get("console")->info("accept signal {:d}",signal.signum);
+	signal.loop.break_loop();
 }
 

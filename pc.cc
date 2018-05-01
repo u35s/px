@@ -6,10 +6,10 @@
 
 ProxyClient::ProxyClient(const int& fd,const struct sockaddr_in& addr):
 	clientfd_(fd),client_addr_(addr){
-		//client_io_.set(loop_);
-		//remote_io_.set(loop_);
 		spdlog::get("console")->info("new client form {:s}:{:d},fd {:d}",
 				inet_ntoa(client_addr_.sin_addr),ntohl(client_addr_.sin_port),fd);
+
+		remote_addr_.sin_family = AF_INET;
 
 		fcntl(clientfd_, F_SETFL, fcntl(clientfd_, F_GETFL, 0) | O_NONBLOCK); 
 		client_io_.set<ProxyClient, &ProxyClient::ParseRequest>(this);
@@ -19,6 +19,7 @@ ProxyClient::ProxyClient(const int& fd,const struct sockaddr_in& addr):
 ProxyClient::~ProxyClient(){
 	spdlog::get("console")->info("client {:s}:{:d} closed,err:{:s}",
 			inet_ntoa(client_addr_.sin_addr),client_addr_.sin_port,err_);
+
 	xlib::print_stack();
 	client_io_.stop();
 	close(clientfd_);
@@ -34,11 +35,11 @@ void ProxyClient::ParseRequest(ev::io &watcher, int revents){
 	std::stringbuf* buf;
 	while (true) {
 		int nread = recv(clientfd_, buffer, 1, 0);
-		if (nread <= 0) {
-			if (errno==EINTR) {
-				continue;
-			} else if (errno==EAGAIN) {
-				spdlog::get("console")->info("parse requet error {:s},code:{:d}",strerror(errno),nread);
+		if (nread ==0 ){
+			delete this;
+			return;
+		} else if (nread == -1) {
+			if (errno==EAGAIN) {
 				return;
 			} else {
 				spdlog::get("console")->info("parse requet error {:s},code:{:d}",strerror(errno),nread);
@@ -46,28 +47,22 @@ void ProxyClient::ParseRequest(ev::io &watcher, int revents){
 				return;
 			}
 		}
-		if (nread == 0) {
-			spdlog::get("console")->info("parse requet closed {:s},code:{:d}",strerror(errno),nread);
-			delete this;
-			return;
-		} else {
-			buf = &first_buf_;
-			if (*buffer	== '\r') {
+		buf = &first_buf_;
+		if (*buffer	== '\r') {
+			continue;
+		} else if (*buffer == '\n') {
+			if (!first_line_read_) {
+				first_line_read_ = true;
 				continue;
-			} else if (*buffer == '\n') {
-				if (!first_line_read_) {
-					first_line_read_ = true;
-					continue;
-				} else if (last == '\n') {
-					break;
-				}
-			}	
-			last = *buffer;
-			if (first_line_read_) {
-				buf = &parsed_buf_;
+			} else if (last == '\n') {
+				break;
 			}
-			buf->sputn(buffer,1);	
+		}	
+		last = *buffer;
+		if (first_line_read_) {
+			buf = &parsed_buf_;
 		}
+		buf->sputn(buffer,1);	
 	}
 	std::vector<std::string> vec;
 	xlib::split(first_buf_.str()," ",vec);
@@ -98,9 +93,6 @@ void ProxyClient::ParseRequest(ev::io &watcher, int revents){
 		}
 		std::vector<std::string> ot;
 		xlib::split(third[1],":",ot);
-		//for (auto i=0;i<third.size();i++) {
-		//	spdlog::get("console")->info("size {:d},{:s}",i,third[i]);
-		//}
 		if (ot.size() == 1) {
 			host = ot[0];
 			port = "80";
@@ -115,11 +107,11 @@ void ProxyClient::ParseRequest(ev::io &watcher, int revents){
 		proto = "http";
 	}
 
-	remote_addr_.sin_family = AF_INET;
-	char ip[16]; 
 	extern char* conf_domain;
 	extern char* conf_port;
 	extern bool conf_forward;
+
+	char ip[16]; 
 	std::string used_host = host,used_port = port;
 	if (conf_forward) {
 		used_host = std::string(conf_domain);
@@ -159,8 +151,8 @@ void ProxyClient::ParseRequest(ev::io &watcher, int revents){
 
 void ProxyClient::ClientCallback(ev::io &watcher, int revents) {
 	if (EV_ERROR & revents) {
+		spdlog::get("console")->info("client callback got invalid event {:s}",strerror(errno));
 		delete this;
-		std::perror("client callback got invalid event");
 		return;
 	}
 
@@ -182,7 +174,10 @@ void ProxyClient::ClientReadCallback(ev::io &watcher) {
 	memset(buffer,0,1024);
 	int nread = recv(watcher.fd, buffer, sizeof(buffer), 0);
 
-	if (nread <= 0) {
+	if (nread == 0) {
+		delete this;
+		return;
+	} else if (nread == -1) {
 		if (errno==EAGAIN) {
 			return;
 		} else {
@@ -192,15 +187,10 @@ void ProxyClient::ClientReadCallback(ev::io &watcher) {
 		}
 	}
 
-	if (nread == 0) {
-		delete this;
-		return;
-	} else {
-		//spdlog::get("console")->info("recive from client {:s}:{:d},length:{:d}",
-		//		inet_ntoa(remote_addr_.sin_addr),remote_addr_.sin_port,nread);
-		remote_write_queue_.push_back(new xlib::Buffer(buffer,nread));
-		remote_io_.set(ev::READ|ev::WRITE);
-	}
+	//spdlog::get("console")->info("recive from client {:s}:{:d},length:{:d}",
+	//		inet_ntoa(remote_addr_.sin_addr),remote_addr_.sin_port,nread);
+	remote_write_queue_.push_back(new xlib::Buffer(buffer,nread));
+	remote_io_.set(ev::READ|ev::WRITE);
 }
 
 void ProxyClient::ClientWriteCallback(ev::io &watcher) {
@@ -211,12 +201,12 @@ void ProxyClient::ClientWriteCallback(ev::io &watcher) {
 
 	xlib::Buffer* buffer = client_write_queue_.front();
 	int written = write(watcher.fd, buffer->Bytes(), buffer->Length());
-	if (written <= 0) {
+	if (written == -1) {
 		if (errno==EAGAIN) {
 			return;
 		} else {
-			delete this;
 			spdlog::get("console")->info("client write error {:s},code:{:d}",strerror(errno),written);
+			delete this;
 			return;
 		}
 	}
@@ -261,27 +251,26 @@ void ProxyClient::RemoteReadCallback(ev::io &watcher) {
 
 	int nread = recv(watcher.fd, buffer, sizeof(buffer)-1, 0);
 
-	if (nread <= 0) {
+	if (nread == 0) {
+        // connection closed
+		delete this;
+	} else if ( nread== -1) {
 		if (errno==EAGAIN) {
 			return;
-		} else {
-			spdlog::get("console")->info("remote read error {:s},code:{:d}",strerror(errno),nread);
+		}  else {
+			spdlog::get("console")->info("remote read error {:s},code:{:d}",
+					strerror(errno),nread);
 			delete this;
 			return;
 		}
+
 	}
 
-	if (nread == 0) {
-		spdlog::get("console")->info("remote read error {:s},code:{:d}",strerror(errno),nread);
-		delete this;
-		return;
-	} else {
-		//spdlog::get("console")->info("recive from remote {:s}:{:d},length:{:d}",
-		//		inet_ntoa(remote_addr_.sin_addr),remote_addr_.sin_port,nread);
+	//spdlog::get("console")->info("recive from remote {:s}:{:d},length:{:d}",
+	//		inet_ntoa(remote_addr_.sin_addr),remote_addr_.sin_port,nread);
 
-		client_write_queue_.push_back(new xlib::Buffer(buffer,nread));
-		client_io_.set(ev::READ|ev::WRITE);
-	}
+	client_write_queue_.push_back(new xlib::Buffer(buffer,nread));
+	client_io_.set(ev::READ|ev::WRITE);
 }
 
 void ProxyClient::RemoteWriteCallback(ev::io &watcher) {
@@ -293,12 +282,13 @@ void ProxyClient::RemoteWriteCallback(ev::io &watcher) {
 	xlib::Buffer* buffer = remote_write_queue_.front();
 
 	int written = write(watcher.fd, buffer->Bytes(), buffer->Length());
-	if (written <= 0) {
-		if (errno==EAGAIN) {
+	if (written == -1) {
+		if (errno == EAGAIN) {
 			return;
 		} else {
+			spdlog::get("console")->info("remote write error {:s},code:{:d}",
+					strerror(errno),written);
 			delete this;
-			spdlog::get("console")->info("remote write error {:s},code:{:d}",strerror(errno),written);
 			return;
 		}
 	}

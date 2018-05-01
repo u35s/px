@@ -44,7 +44,10 @@ int get_ip_by_domain(const char *domain, char *ip)
   
     hptr = gethostbyname(domain);  
     if(NULL == hptr){  
-        return -1;  
+    	hptr = gethostbyname(domain);  
+		if (NULL == hptr) {
+        	return -1;  
+		}
     }  
     for(pptr = hptr->h_addr_list ; *pptr != NULL; pptr++) {  
         if (NULL != inet_ntop(hptr->h_addrtype, *pptr, ip, 16) ) {  
