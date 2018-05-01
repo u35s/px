@@ -196,8 +196,8 @@ void ProxyClient::ClientReadCallback(ev::io &watcher) {
 		delete this;
 		return;
 	} else {
-		spdlog::get("console")->info("recive from client {:s}:{:d},length:{:d}",
-				inet_ntoa(remote_addr_.sin_addr),remote_addr_.sin_port,nread);
+		//spdlog::get("console")->info("recive from client {:s}:{:d},length:{:d}",
+		//		inet_ntoa(remote_addr_.sin_addr),remote_addr_.sin_port,nread);
 		remote_write_queue_.push_back(new xlib::Buffer(buffer,nread));
 		remote_io_.set(ev::READ|ev::WRITE);
 	}
@@ -224,9 +224,9 @@ void ProxyClient::ClientWriteCallback(ev::io &watcher) {
 	//char send[1024];
 	//memset(send,0,1024);
 	//memcpy(send,buffer->Bytes(),written);
-	spdlog::get("console")->info("remote {:s}:{:d} send to client {:s}:{:d},length:{:d}",
-			inet_ntoa(remote_addr_.sin_addr),remote_addr_.sin_port,
-			inet_ntoa(client_addr_.sin_addr),client_addr_.sin_port,written);
+	//spdlog::get("console")->info("remote {:s}:{:d} send to client {:s}:{:d},length:{:d}",
+	//		inet_ntoa(remote_addr_.sin_addr),remote_addr_.sin_port,
+	//		inet_ntoa(client_addr_.sin_addr),client_addr_.sin_port,written);
 
 	buffer->Add(written);
 	if (buffer->Length() == 0) {
@@ -276,8 +276,8 @@ void ProxyClient::RemoteReadCallback(ev::io &watcher) {
 		delete this;
 		return;
 	} else {
-		spdlog::get("console")->info("recive from remote {:s}:{:d},length:{:d}",
-				inet_ntoa(remote_addr_.sin_addr),remote_addr_.sin_port,nread);
+		//spdlog::get("console")->info("recive from remote {:s}:{:d},length:{:d}",
+		//		inet_ntoa(remote_addr_.sin_addr),remote_addr_.sin_port,nread);
 
 		client_write_queue_.push_back(new xlib::Buffer(buffer,nread));
 		client_io_.set(ev::READ|ev::WRITE);
@@ -306,9 +306,9 @@ void ProxyClient::RemoteWriteCallback(ev::io &watcher) {
 	//char send[1024];
 	//memset(send,0,1024);
 	//memcpy(send,buffer->Bytes(),written);
-	spdlog::get("console")->info("client {:s}:{:d} send to remote {:s}:{:d},length:{:d}",
-			inet_ntoa(client_addr_.sin_addr),client_addr_.sin_port,
-			inet_ntoa(remote_addr_.sin_addr),remote_addr_.sin_port,written);
+	//spdlog::get("console")->info("client {:s}:{:d} send to remote {:s}:{:d},length:{:d}",
+	//		inet_ntoa(client_addr_.sin_addr),client_addr_.sin_port,
+	//		inet_ntoa(remote_addr_.sin_addr),remote_addr_.sin_port,written);
 
 	buffer->Add(written);
 	if (buffer->Length() == 0) {
