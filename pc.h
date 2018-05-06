@@ -9,17 +9,17 @@
 
 class ProxyClient{
 public:
-    ProxyClient(const int& fd,const struct sockaddr_in& addr);
+    ProxyClient(const int fd,const struct sockaddr_in addr);
 	~ProxyClient();
 private:
 
    void ClientCallback(ev::io &watcher, int revents);
-   void ClientWriteCallback(ev::io &watcher);
-   void ClientReadCallback(ev::io &watcher);
+   bool ClientWriteCallback(ev::io &watcher);
+   bool ClientReadCallback(ev::io &watcher);
 
    void RemoteCallback(ev::io &watcher, int revents);
-   void RemoteWriteCallback(ev::io &watcher);
-   void RemoteReadCallback(ev::io &watcher);
+   bool RemoteWriteCallback(ev::io &watcher);
+   bool RemoteReadCallback(ev::io &watcher);
 
    void ParseRequest(ev::io &watcher, int revents);
 

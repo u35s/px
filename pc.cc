@@ -1,11 +1,14 @@
 #include <arpa/inet.h> //inet_ntoa
+#include <fcntl.h>
 #include <boost/format.hpp>
 #include "spdlog/spdlog.h"
 #include "pc.h"
 #include "xlib.h"
 
-ProxyClient::ProxyClient(const int& fd,const struct sockaddr_in& addr):
-	clientfd_(fd),client_addr_(addr){
+ProxyClient::ProxyClient(const int fd,const struct sockaddr_in addr){
+		clientfd_ = fd;
+		client_addr_ = addr;
+		first_line_read_  = false;
 		spdlog::get("console")->info("new client form {:s}:{},fd {:d}",
 				inet_ntoa(client_addr_.sin_addr),ntohs(client_addr_.sin_port),fd);
 
@@ -67,8 +70,10 @@ void ProxyClient::ParseRequest(ev::io &watcher, int revents){
 		if (first_line_read_) {
 			buf = &parsed_buf_;
 		}
+		std::cout << last;
 		buf->sputn(buffer,1);	
 	}
+	std::cout << std::endl;
 	std::vector<std::string> vec;
 	xlib::split(first_buf_.str()," ",vec);
 	if (vec.size() < 2) {
@@ -173,11 +178,17 @@ void ProxyClient::ClientCallback(ev::io &watcher, int revents) {
 		return;
 	}
 
-	if (revents & EV_READ) 
-		ClientReadCallback(watcher);
+	if (revents & EV_READ) {
+		if (!ClientReadCallback(watcher)){
+			return;	
+		}
+	}
 
-	if (revents & EV_WRITE) 
-		ClientWriteCallback(watcher);
+	if (revents & EV_WRITE) {
+		if (!ClientWriteCallback(watcher)){
+			return ;	
+		}
+	}
 
 	if (client_write_queue_.empty()) {
 		client_io_.set(ev::READ);
@@ -186,22 +197,22 @@ void ProxyClient::ClientCallback(ev::io &watcher, int revents) {
 	}
 }
 
-void ProxyClient::ClientReadCallback(ev::io &watcher) {
+bool ProxyClient::ClientReadCallback(ev::io &watcher) {
 	char buffer[1024];
 	memset(buffer,0,1024);
 	int nread = recv(watcher.fd, buffer, sizeof(buffer), 0);
 
 	if (nread == 0) {
 		delete this;
-		return;
+		return false;
 	} else if (nread == -1) {
 		if (errno==EAGAIN) {
-			return;
+			return true;
 		} else {
 			spdlog::get("console")->info("client read error {:s},code:{:d}",
 					strerror(errno),nread);
 			delete this;
-			return;
+			return false;
 		}
 	}
 
@@ -209,24 +220,25 @@ void ProxyClient::ClientReadCallback(ev::io &watcher) {
 	//		inet_ntoa(remote_addr_.sin_addr),remote_addr_.sin_port,nread);
 	remote_write_queue_.push_back(new xlib::Buffer(buffer,nread));
 	remote_io_.set(ev::READ|ev::WRITE);
+	return true;
 }
 
-void ProxyClient::ClientWriteCallback(ev::io &watcher) {
+bool ProxyClient::ClientWriteCallback(ev::io &watcher) {
 	if (client_write_queue_.empty()) {
 		client_io_.set(ev::READ);
-		return;
+		return true;
 	}
 
 	xlib::Buffer* buffer = client_write_queue_.front();
 	int written = write(watcher.fd, buffer->Bytes(), buffer->Length());
 	if (written == -1) {
 		if (errno==EAGAIN) {
-			return;
+			return true;
 		} else {
 			spdlog::get("console")->info("client write error {:s},code:{:d}",
 					strerror(errno),written);
 			delete this;
-			return;
+			return false;
 		}
 	}
 
@@ -240,8 +252,9 @@ void ProxyClient::ClientWriteCallback(ev::io &watcher) {
 	buffer->Add(written);
 	if (buffer->Length() == 0) {
 		client_write_queue_.pop_front();
-		delete buffer;
+		//delete buffer;
 	}
+	return true;
 }
 
 void ProxyClient::RemoteCallback(ev::io &watcher, int revents) {
@@ -251,11 +264,17 @@ void ProxyClient::RemoteCallback(ev::io &watcher, int revents) {
 		return;
 	}
 
-	if (revents & EV_READ) 
-		RemoteReadCallback(watcher);
+	if (revents & EV_READ) {
+		if (!RemoteReadCallback(watcher)){
+			return;	
+		}
+	}
 
-	if (revents & EV_WRITE) 
-		RemoteWriteCallback(watcher);
+	if (revents & EV_WRITE) {
+		if (!RemoteWriteCallback(watcher)){
+			return;
+		}
+	}
 
 	if (remote_write_queue_.empty()) {
 		remote_io_.set(ev::READ);
@@ -264,7 +283,7 @@ void ProxyClient::RemoteCallback(ev::io &watcher, int revents) {
 	}
 }
 
-void ProxyClient::RemoteReadCallback(ev::io &watcher) {
+bool ProxyClient::RemoteReadCallback(ev::io &watcher) {
 	char buffer[1024];
 	memset(buffer,0,1024);
 
@@ -273,14 +292,15 @@ void ProxyClient::RemoteReadCallback(ev::io &watcher) {
 	if (nread == 0) {
         // connection closed
 		delete this;
+		return false;
 	} else if ( nread== -1) {
 		if (errno==EAGAIN) {
-			return;
+			return true;
 		}  else {
 			spdlog::get("console")->info("remote read error {:s},code:{:d}",
 					strerror(errno),nread);
 			delete this;
-			return;
+			return false;
 		}
 
 	}
@@ -290,12 +310,13 @@ void ProxyClient::RemoteReadCallback(ev::io &watcher) {
 
 	client_write_queue_.push_back(new xlib::Buffer(buffer,nread));
 	client_io_.set(ev::READ|ev::WRITE);
+	return true;
 }
 
-void ProxyClient::RemoteWriteCallback(ev::io &watcher) {
+bool ProxyClient::RemoteWriteCallback(ev::io &watcher) {
 	if (remote_write_queue_.empty()) {
 		remote_io_.set(ev::READ);
-		return;
+		return false;
 	}
 
 	xlib::Buffer* buffer = remote_write_queue_.front();
@@ -303,12 +324,12 @@ void ProxyClient::RemoteWriteCallback(ev::io &watcher) {
 	int written = write(watcher.fd, buffer->Bytes(), buffer->Length());
 	if (written == -1) {
 		if (errno == EAGAIN) {
-			return;
+			return true;
 		} else {
 			spdlog::get("console")->info("remote write error {:s},code:{:d}",
 					strerror(errno),written);
 			delete this;
-			return;
+			return false;
 		}
 	}
 
@@ -324,4 +345,5 @@ void ProxyClient::RemoteWriteCallback(ev::io &watcher) {
 		remote_write_queue_.pop_front();
 		delete buffer;
 	}
+	return true;
 }
