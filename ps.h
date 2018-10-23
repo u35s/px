@@ -1,19 +1,28 @@
 #ifndef PX_PS_H_
 #define PX_PS_H_
 
-#include "ev++.h"
+#include "xlib/net_util.h"
+#include "pc.h"
 
+class ProxyClient;
 class ProxyServer{
 public:
-    ProxyServer(int port);
+    ProxyServer();
 	~ProxyServer();
 
-	void Accept(ev::io& watcher, int revents);
-	static void SignalCallback(ev::sig &signal, int revents);
+	void Init(uint32_t port);
+	void NewClient(uint64_t);
+	void AddPeerClient(uint64_t,uint64_t);
+	void RemoveClient(uint64_t);
+	void SendData(uint64_t);
+	void RecvData(uint64_t);
+    void Serve();
+    void Update();
+    xlib::NetIO* m_netio;
 private:
-    ev::io io_;
-    ev::sig sio_;
-    int serverfd_;
+    uint32_t m_port;
+    xlib::Epoll* m_epoll;
+    std::unordered_map<uint64_t, std::shared_ptr<ProxyClient> > m_client_map;
 };
 
 #endif // end PX_PS_H_

@@ -1,67 +1,100 @@
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <sys/epoll.h>
 #include <cstdio>
 #include <iostream>
 #include "spdlog/spdlog.h"
 #include "ps.h"
-#include "pc.h"
+#include "xlib/net_util.h"
 
-ProxyServer::ProxyServer(int port){
-	serverfd_ = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (serverfd_ == -1) {
-	    spdlog::get("console")->info("accept error {:s},code:{:d}",strerror(errno),serverfd_);
-		return;
-	}
-	int option = 1;
-	setsockopt(serverfd_, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
-
-	struct sockaddr_in addr;
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(port);
-	addr.sin_addr.s_addr = INADDR_ANY;
-    
-	if (int err = ::bind(serverfd_, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
-	    spdlog::get("console")->info("accept error {:s},code:{:d}",strerror(errno),err);
-		return;
-	}
-    fcntl(serverfd_, F_SETFL, fcntl(serverfd_, F_GETFL, 0) | O_NONBLOCK); 
-	listen(serverfd_, 5);
-	
-    spdlog::get("console")->info("listening on port {:d}",port);
-
-    io_.set<ProxyServer, &ProxyServer::Accept>(this);
-	io_.start(serverfd_, ev::READ);
-
-	sio_.set<&ProxyServer::SignalCallback>();
-	sio_.start(SIGINT);
+ProxyServer::ProxyServer()
+    : m_netio(new xlib::NetIO()), m_port(0), m_epoll(new xlib::Epoll()) {
 }
 
-ProxyServer::~ProxyServer(){
-   io_.stop();
-   sio_.stop();
-   close(serverfd_);
+ProxyServer::~ProxyServer() {
+    delete m_epoll;
+    delete m_netio;
 }
 
-void ProxyServer::Accept(ev::io& watcher, int revents){
-    if (EV_ERROR & revents) {
-        std::perror("got invalid event");
-		return;
-	}
-
-	struct sockaddr_in client_addr;
-	socklen_t client_len = sizeof(client_addr);
-
-	int client_fd = accept(watcher.fd, (struct sockaddr *)&client_addr, &client_len);
-
-	if (client_fd == -1) {
-	    spdlog::get("console")->info("accept error {:s},code:{:d}",strerror(errno),client_fd);
-		return;
-	}
-	new ProxyClient(client_fd,client_addr);
+void ProxyServer::Init(uint32_t port) {
+    m_port = port;
+    m_epoll->Init(1024);
+    m_netio->Init(m_epoll);
+    m_netio->Listen("tcp://0.0.0.0", m_port);
 }
 
-void ProxyServer::SignalCallback(ev::sig &signal, int revents) {
-	spdlog::get("console")->info("accept signal {:d}",signal.signum);
-	signal.loop.break_loop();
+void ProxyServer::AddPeerClient(uint64_t handle, uint64_t peer_handle) {
+    std::unordered_map<uint64_t, std::shared_ptr<ProxyClient>>::iterator it = m_client_map.find(handle);
+    if (it == m_client_map.end()) {
+        return;
+    }
+    m_client_map[peer_handle] = it->second;
+}
+void ProxyServer::RemoveClient(const uint64_t handle) {
+    std::cout << "remove client" << handle << std::endl;
+    m_client_map.erase(handle);
 }
 
+void ProxyServer::NewClient(const uint64_t handle) {
+    std::shared_ptr<ProxyClient> client(new ProxyClient(handle, m_netio));
+    client->Update(true, handle);
+    m_client_map[handle] = client;
+}
+
+void ProxyServer::RecvData(const uint64_t handle) {
+    std::unordered_map<uint64_t, std::shared_ptr<ProxyClient>>::iterator it = m_client_map.find(handle);
+    if (it == m_client_map.end()) {
+        return;
+    }
+    it->second->Update(true, handle);
+}
+
+void ProxyServer::SendData(const uint64_t handle) {
+    std::unordered_map<uint64_t, std::shared_ptr<ProxyClient>>::iterator it = m_client_map.find(handle);
+    if (it == m_client_map.end()) {
+        return;
+    }
+    it->second->Update(false, handle);
+}
+
+void ProxyServer::Update() {
+   int32_t ret = m_epoll->Wait(-1);
+   if (ret <= 0) {
+      return; 
+   }
+
+   uint32_t events  = 0;
+   uint64_t netaddr = 0;
+   ret = m_epoll->GetEvent(&events, &netaddr);
+   if (ret != 0) {
+       return;
+   }
+
+   if (events & EPOLLERR) {
+       RemoveClient(netaddr);
+   }
+
+   if (events & EPOLLOUT) {
+       SendData(netaddr);
+   }
+
+   if (events & EPOLLIN) {
+       const xlib::SocketInfo* socket_info = m_netio->GetSocketInfo(netaddr);
+       if (socket_info->_state & xlib::TCP_PROTOCOL) {
+           if (socket_info->_state & xlib::LISTEN_ADDR) {
+               uint64_t peer_handle = m_netio->Accept(netaddr);
+               if (peer_handle != xlib::INVAILD_NETADDR) {
+                   NewClient(peer_handle);
+               }
+           } else {
+               RecvData(netaddr);
+           }
+       }
+   }
+}
+
+void ProxyServer::Serve() {
+    do {
+        Update();
+    } while (true);
+}

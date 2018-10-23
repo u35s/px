@@ -1,4 +1,3 @@
-#include "ev++.h"
 #include "spdlog/spdlog.h"
 #include "ps.h"
 #include "xlib.h"
@@ -6,6 +5,8 @@
 char* conf_domain;
 char* conf_port;
 bool conf_forward = false;
+
+ProxyServer ps;
 
 int main(int argc, char **argv){
 	spdlog::stdout_logger_mt("console");
@@ -19,8 +20,9 @@ int main(int argc, char **argv){
 			conf_port = argv[3];
 		}
 	}
-    ev::default_loop loop;
-	ProxyServer px(port);
-    loop.run(0);
+    ps.Init(port);
+    ps.Serve();
     return 0;
+
+   
 }
