@@ -17,18 +17,9 @@
 #include <sys/epoll.h>
 
 #include "net_util.h"
+#include "log.h"
 
 namespace xlib {
-
-#define LOG_MESSAGE(buff, buff_len, fmt, ...) \
-    snprintf((buff), (buff_len), "(%s:%d)(%s)" fmt, \
-    __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
-
-#define DBG(fmt, ...)
-#define INFO(fmt, ...)
-#define ERR(fmt, ...) LOG_MESSAGE((m_last_error), (sizeof(m_last_error)), fmt, ##__VA_ARGS__)
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void SocketInfo::Reset() {
     _socket_fd = -1;
@@ -183,7 +174,7 @@ NetAddr NetIO::Accept(NetAddr listen_addr) {
                 errno, listen_addr, socket_info->_socket_fd);
             RawClose(socket_info);
         }
-        INFO("accept none from addr[%lu]", listen_addr);
+        INF("accept none from addr[%lu]", listen_addr);
         return INVAILD_NETADDR;
     }
     if (true == NetIO::NON_BLOCK) {

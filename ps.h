@@ -1,6 +1,7 @@
 #ifndef PX_PS_H_
 #define PX_PS_H_
 
+#include <memory>
 #include "xlib/net_util.h"
 #include "pc.h"
 

@@ -4,7 +4,7 @@
 #include <list>
 #include <sstream>
 #include "xlib/net_util.h"
-#include "xlib.h"
+#include "xlib/xlib.h"
 #include "ps.h"
 
 class ProxyClient{

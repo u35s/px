@@ -2,6 +2,9 @@
 #define PX_XLIB_H_
 
 #include <netinet/in.h>
+#include <vector>
+#include <string>
+#include <unordered_map>
 //#include <sys/socket.h>
 //#include <arpa/inet.h> 
 //#include <netdb.h> 

@@ -1,6 +1,6 @@
-#include "spdlog/spdlog.h"
 #include "ps.h"
-#include "xlib.h"
+#include "xlib/xlib.h"
+#include "xlib/log.h"
 
 char* conf_domain;
 char* conf_port;
@@ -9,7 +9,8 @@ bool conf_forward = false;
 ProxyServer ps;
 
 int main(int argc, char **argv){
-	spdlog::stdout_logger_mt("console");
+    DBG("hello world!");
+    ERR("hello world!");
 
 	int port = 1079;
 	if (argc >= 2){

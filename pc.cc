@@ -1,10 +1,12 @@
+#include "string.h"
+#include "errno.h"
 #include <arpa/inet.h> //inet_ntoa
 #include <fcntl.h>
 #include <boost/format.hpp>
 #include <sstream>
-#include "spdlog/spdlog.h"
 #include "pc.h"
-#include "xlib.h"
+#include "xlib/xlib.h"
+#include "xlib/log.h"
 
 ProxyClient::ProxyClient(const uint64_t handle, xlib::NetIO* netio)
     : m_handle(handle), m_peer_handle(0), first_line_read_(false), parsed_(false),
@@ -165,8 +167,7 @@ bool ProxyClient::Read() {
     		if (errno==EAGAIN) {
     			return true;
     		} else {
-    			spdlog::get("console")->info("client read error {:s},code:{:d}",
-    					strerror(errno),nread);
+    			INF("client read error %s,code:%d", strerror(errno), nread);
     			//delete this;
                 break;
     		}
@@ -186,8 +187,7 @@ bool ProxyClient::Write() {
     		if (errno==EAGAIN) {
     			return true;
     		} else {
-    			spdlog::get("console")->info("client write error {:s},code:{:d}",
-    					strerror(errno),written);
+    			INF("client write error %s,code:%d", strerror(errno), written);
     			//delete this;
     			return false;
     		}
@@ -215,8 +215,7 @@ bool ProxyClient::PeerRead() {
     		if (errno==EAGAIN) {
     			return true;
     		}  else {
-    			spdlog::get("console")->info("remote read error {:s},code:{:d}",
-    					strerror(errno),nread);
+    			INF("remote read error %s,code:%d", strerror(errno), nread);
     			//delete this;
                 break;
     		}
@@ -235,8 +234,7 @@ bool ProxyClient::PeerWrite() {
     		if (errno == EAGAIN) {
     			return true;
     		} else {
-    			spdlog::get("console")->info("remote write error {:s},code:{:d}",
-    					strerror(errno),written);
+    			INF("remote write error %s,code:%d", strerror(errno), written);
     			//delete this;
     			return false;
     		}

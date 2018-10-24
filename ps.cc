@@ -3,7 +3,6 @@
 #include <sys/epoll.h>
 #include <cstdio>
 #include <iostream>
-#include "spdlog/spdlog.h"
 #include "ps.h"
 #include "xlib/net_util.h"
 
