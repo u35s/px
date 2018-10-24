@@ -1,12 +1,12 @@
-#ifndef PX_NET_UTIL_H_
-#define PX_NET_UTIL_H_
+#ifndef XLIB_NET_UTIL_H_
+#define XLIB_NET_UTIL_H_
 
 #include <list>
 #include <string>
 #include <stdint.h>
 
 namespace xlib {
-        
+
 #define NETADDR_IP_PRINT_FMT   "%u.%u.%u.%u:%u"
 #define NETADDR_IP_PRINT_CTX(socket_info) \
     (socket_info->_ip & 0xFFU), ((socket_info->_ip >> 8) & 0xFFU), \
@@ -19,11 +19,11 @@ class NetIO;
 
 static const uint8_t TCP_PROTOCOL = 0x80;
 static const uint8_t UDP_PROTOCOL = 0x40;
-static const uint8_t IN_BLOCKED = 0x10;  
-static const uint8_t ADDR_TYPE = 0x07;   
+static const uint8_t IN_BLOCKED = 0x10;
+static const uint8_t ADDR_TYPE = 0x07;
 static const uint8_t CONNECT_ADDR = 0x04;
-static const uint8_t LISTEN_ADDR = 0x02; 
-static const uint8_t ACCEPT_ADDR = 0x01; 
+static const uint8_t LISTEN_ADDR = 0x02;
+static const uint8_t ACCEPT_ADDR = 0x01;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -43,10 +43,9 @@ struct SocketInfo {
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class Epoll
-{
+class Epoll {
     friend class NetIO;
-public:
+ public:
     Epoll();
     ~Epoll();
 
@@ -66,7 +65,7 @@ public:
         return m_last_error;
     }
 
-private:
+ private:
     char    m_last_error[256];
     int32_t m_epoll_fd;
     int32_t m_max_event;
@@ -79,7 +78,8 @@ private:
 
 class NetIO {
     friend Epoll;
-public:
+
+ public:
     NetIO();
     ~NetIO();
 
@@ -96,11 +96,13 @@ public:
     int32_t SendV(NetAddr dst_addr, uint32_t data_num,
                   const char* data[], uint32_t data_len[], uint32_t offset = 0);
 
-    int32_t SendTo(NetAddr local_addr, NetAddr remote_addr, const char* data, uint32_t data_len);
+    int32_t SendTo(NetAddr local_addr, NetAddr remote_addr,
+        const char* data, uint32_t data_len);
 
     int32_t Recv(NetAddr dst_addr, char* buff, uint32_t buff_len);
 
-    int32_t RecvFrom(NetAddr local_addr, NetAddr* remote_addr, char* buff, uint32_t buff_len);
+    int32_t RecvFrom(NetAddr local_addr, NetAddr* remote_addr,
+        char* buff, uint32_t buff_len);
 
     int32_t Close(NetAddr dst_addr);
 
@@ -118,24 +120,25 @@ public:
         return m_last_error;
     }
 
-    static bool NON_BLOCK;         
-    static bool ADDR_REUSE;        
-    static bool KEEP_ALIVE;        
-    static bool USE_NAGLE;         
-    static bool USE_LINGER;        
-    static int32_t LINGER_TIME;    
-    static int32_t LISTEN_BACKLOG; 
+    static bool NON_BLOCK;
+    static bool ADDR_REUSE;
+    static bool KEEP_ALIVE;
+    static bool USE_NAGLE;
+    static bool USE_LINGER;
+    static int32_t LINGER_TIME;
+    static int32_t LISTEN_BACKLOG;
     static uint32_t MAX_SOCKET_NUM;
     static uint8_t AUTO_RECONNECT;
 
-private:
+ private:
     NetAddr AllocNetAddr();
 
     void FreeNetAddr(NetAddr net_addr);
 
     SocketInfo* RawGetSocketInfo(NetAddr net_addr);
 
-    int32_t InitSocketInfo(const std::string& ip, uint16_t port, SocketInfo* socket_info);
+    int32_t InitSocketInfo(const std::string& ip,
+        uint16_t port, SocketInfo* socket_info);
 
     int32_t OnEvent(NetAddr net_addr, uint32_t events);
 
@@ -153,5 +156,6 @@ private:
     std::list<NetAddr>  m_free_sockets;
 };
 
-}
-#endif // PX_NET_UTIL_H_
+}  // namespace xlib
+
+#endif  // XLIB_NET_UTIL_H_

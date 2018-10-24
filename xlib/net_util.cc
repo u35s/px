@@ -32,7 +32,8 @@ void SocketInfo::Reset() {
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Epoll::Epoll() : m_epoll_fd(-1), m_max_event(1000), m_event_num(0), m_events(NULL), m_bind_net_io(NULL) {
+Epoll::Epoll() : m_epoll_fd(-1), m_max_event(1000), m_event_num(0),
+    m_events(NULL), m_bind_net_io(NULL) {
 }
 
 Epoll::~Epoll() {
@@ -219,7 +220,7 @@ NetAddr NetIO::ConnectPeer(const std::string& ip, uint16_t port) {
             ERR("invalid address[%s:%u]", ip.c_str(), port);
             break;
         }
-        //socket_info->_state |= CONNECT_ADDR;
+        // socket_info->_state |= CONNECT_ADDR;
         if (RawConnect(net_addr, socket_info) < 0) {
             ERR("connect address[%s:%u] fail", ip.c_str(), port);
             break;
@@ -540,4 +541,4 @@ int32_t NetIO::OnEvent(NetAddr net_addr, uint32_t events) {
     return 0;
 }
 
-} // namespace xlib
+}  // namespace xlib
