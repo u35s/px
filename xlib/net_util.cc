@@ -175,7 +175,7 @@ NetAddr NetIO::Accept(NetAddr listen_addr) {
                 errno, listen_addr, socket_info->_socket_fd);
             RawClose(socket_info);
         }
-        INF("accept none from addr[%lu]", listen_addr);
+        ERR("accept none from addr[%lu]", listen_addr);
         return INVAILD_NETADDR;
     }
     if (true == NetIO::NON_BLOCK) {
@@ -407,7 +407,7 @@ int32_t NetIO::InitSocketInfo(const std::string& ip, uint16_t port, SocketInfo* 
         socket_info->_state |= UDP_PROTOCOL;
         socket_info->_ip = inet_addr(ip.c_str() + 6);
     } else {
-        DBG("ip[%s] default as tcp protocol", ip.c_str());
+        DBG("ip [%s] default as tcp protocol", ip.c_str());
         socket_info->_state |= TCP_PROTOCOL;
         socket_info->_ip = inet_addr(ip.c_str());
     }
@@ -514,6 +514,7 @@ int32_t NetIO::RawConnect(NetAddr net_addr, SocketInfo* socket_info) {
 int32_t NetIO::RawClose(SocketInfo* socket_info) {
     int32_t ret = 0;
     if (socket_info->_socket_fd >= 0) {
+        DBG("close socket")
         ret = close(socket_info->_socket_fd);
         socket_info->_socket_fd = -1;
     }
@@ -530,6 +531,7 @@ int32_t NetIO::OnEvent(NetAddr net_addr, uint32_t events) {
         m_epoll->ModFd(socket_info->_socket_fd, EPOLLIN | EPOLLERR, net_addr);
     }
     if (EPOLLERR & events) {
+        DBG("close handle %lu", net_addr)
         RawClose(socket_info);
         if (socket_info->_state == (CONNECT_ADDR | TCP_PROTOCOL)) {
             if (socket_info->_addr_info > 0) {

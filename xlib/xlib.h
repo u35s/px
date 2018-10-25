@@ -8,7 +8,7 @@
 
 namespace xlib {
 
-void split(const std::string& text, const std::string& sep, std::vector<std::string> strs);
+void split(const std::string& text, const std::string& sep, std::vector<std::string>* strs);
 
 int atoi(char* a);
 

@@ -12,13 +12,14 @@ class ProxyClient{
  public:
     ProxyClient(uint64_t handle, xlib::NetIO* netio);
     ~ProxyClient();
-    void Update(bool read, uint64_t handle);
+    int Update(bool read, uint64_t handle);
+    uint64_t GetPeerHandle();
  private:
-    bool Write();
-    bool Read();
-    bool PeerWrite();
-    bool PeerRead();
-    void ParseRequest();
+    int Write();
+    int Read();
+    int PeerWrite();
+    int PeerRead();
+    int ParseRequest();
 
     std::list<xlib::Buffer*>     client_write_queue_;
     std::list<xlib::Buffer*>     remote_write_queue_;

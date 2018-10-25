@@ -12,42 +12,54 @@ ProxyClient::ProxyClient(const uint64_t handle, xlib::NetIO* netio)
 }
 
 ProxyClient::~ProxyClient() {
-}
+    m_netio->Close(m_handle);
+    m_netio->Close(m_peer_handle);
 
-void ProxyClient::Update(bool read, uint64_t handle) {
-    if (!parsed_) {
-        ParseRequest();
-    } else if (read && handle == m_handle) {
-        DBG("read %d, no peer", read);
-        Read();
-    } else if (!read && handle == m_handle) {
-        DBG("read %d, no peer", read);
-        Write();
-    } else if (read && handle == m_peer_handle) {
-        DBG("read %d, peer", read);
-        PeerRead();
-    } else if (!read && handle == m_peer_handle) {
-        DBG("read %d, peer", read);
-        PeerWrite();
+    while (!remote_write_queue_.empty()) {
+        xlib::Buffer* buffer = remote_write_queue_.front();
+        delete buffer;
+        remote_write_queue_.pop_front();
+    }
+    while (!client_write_queue_.empty()) {
+        xlib::Buffer* buffer = client_write_queue_.front();
+        delete buffer;
+        client_write_queue_.pop_front();
     }
 }
 
-void ProxyClient::ParseRequest() {
+int ProxyClient::Update(bool read, uint64_t handle) {
+    if (!parsed_) {
+        return ParseRequest();
+    } else if (read && handle == m_handle) {
+        DBG("read %d, no peer", read);
+        return Read();
+    } else if (!read && handle == m_handle) {
+        DBG("read %d, no peer", read);
+        return Write();
+    } else if (read && handle == m_peer_handle) {
+        DBG("read %d, peer", read);
+        return PeerRead();
+    } else if (!read && handle == m_peer_handle) {
+        DBG("read %d, peer", read);
+        return PeerWrite();
+    }
+    return -1;
+}
+
+uint64_t ProxyClient::GetPeerHandle() {
+    return m_peer_handle;
+}
+
+int ProxyClient::ParseRequest() {
     char buffer[1];
     char last;
     std::stringbuf* buf;
     while (true) {
         int nread = m_netio->Recv(m_handle, (char*)buffer, 1);
         if (nread == 0) {
-            // delete this;
-            return;
+            return 0;
         } else if (nread == -1) {
-            if (errno == EAGAIN) {
-                return;
-            } else {
-                // delete this;
-                return;
-            }
+            return -1;
         }
         buf = &first_buf_;
         if (*buffer == '\r') {
@@ -69,31 +81,31 @@ void ProxyClient::ParseRequest() {
     }
     LOG("\n")
     std::vector<std::string> vec;
-    xlib::split(first_buf_.str(), " ", vec);
+    xlib::split(first_buf_.str(), " ", &vec);
+    DBG("vec size %zu, %s", vec.size(), first_buf_.str().c_str())
     if (vec.size() < 2) {
-        // delete this;
-        return;
+        return -1;
     }
     std::string host, port, proto;
     if (vec[0] == "CONNECT") {
         std::vector<std::string> two;
-        xlib::split(vec[1], ":", two);
+        xlib::split(vec[1], ":", &two);
         if (two.size() != 2) {
-            // delete this;
-            return;
+            return -1;
         }
         host = two[0];
         port = two[1];
         proto = "https";
     } else {
         std::vector<std::string> third;
-        xlib::split(vec[1], "/", third);
-        if (third.size() < 3) {
-            // delete this;
-            return;
+        xlib::split(vec[1], "/", &third);
+        DBG("third size %zu, %s", third.size(), vec[1].c_str())
+        if (third.size() < 2) {
+            return -1;
         }
         std::vector<std::string> ot;
-        xlib::split(third[1], ":", ot);
+        xlib::split(third[1], ":", &ot);
+        DBG("ot size %zu, %s", ot.size(), third[1].c_str())
         if (ot.size() == 1) {
             host = ot[0];
             port = "80";
@@ -101,8 +113,7 @@ void ProxyClient::ParseRequest() {
             host = ot[0];
             port = ot[1];
         } else {
-            // delete this;
-            return;
+            return -1;
         }
         proto = "http";
     }
@@ -118,8 +129,7 @@ void ProxyClient::ParseRequest() {
         used_port = std::string(conf_port);
     }
     if (xlib::get_ip_by_domain(used_host.c_str(), ip) < 0) {
-        // delete this;
-        return;
+        return -1;
     }
 
     char bt[1] = {'\n'};
@@ -137,104 +147,100 @@ void ProxyClient::ParseRequest() {
         remote_write_queue_.push_back(new xlib::Buffer(first_buf_.str().c_str(), first_buf_.str().size()));
         remote_write_queue_.push_back(new xlib::Buffer(parsed_buf_.str().c_str(), parsed_buf_.str().size()));
     }
+    DBG("start connect %s,%s", host.c_str(), used_port.c_str());
     m_peer_handle = m_netio->ConnectPeer(ip, std::stoi(used_port));
     if (m_peer_handle < 0) {
-        // delete this;
-        return;
+        return -1;
     }
+    DBG("connect ok");
     extern ProxyServer ps;
     ps.AddPeerClient(m_handle, m_peer_handle);
     parsed_ = true;
-    PeerWrite();
+    int length = PeerWrite();
+    DBG("connect write %d", length)
+    return 0;
 }
 
-bool ProxyClient::Read() {
+int ProxyClient::Read() {
     char buffer[1024];
+    int length;
     while (true) {
         memset(buffer, 0, 1024);
         int nread = m_netio->Recv(m_handle, buffer, sizeof(buffer));
         if (nread == 0) {
-            // delete this;
-            break;
+            return 0;
         } else if (nread == -1) {
-            if (errno == EAGAIN) {
-                return true;
-            } else {
-                INF("client read error %s,code:%d", strerror(errno), nread);
-                // delete this;
-                break;
-            }
+            INF("client read error %s,code:%d", strerror(errno), nread);
+            return -1;
         }
+        length += nread;
         remote_write_queue_.push_back(new xlib::Buffer(buffer, nread));
     }
     PeerWrite();
-    return true;
+    return length;
 }
 
-bool ProxyClient::Write() {
+int ProxyClient::Write() {
+    int length;
     while (!client_write_queue_.empty()) {
         xlib::Buffer* buffer = client_write_queue_.front();
         int written = m_netio->Send(m_handle, buffer->Bytes(), buffer->Length());
-        if (written == -1) {
-            if (errno == EAGAIN) {
-                return true;
-            } else {
-                INF("client write error %s,code:%d", strerror(errno), written);
-                // delete this;
-                return false;
-            }
+        if (written == 0) {
+            return 0;
+        } else if (written == -1) {
+            INF("client write error %s,code:%d", strerror(errno), written);
+            return -1;
         }
         buffer->Add(written);
         if (buffer->Length() == 0) {
             client_write_queue_.pop_front();
             // delete buffer;
+        } else {
+            break;
         }
+        length += written;
     }
-    return true;
+    return length;
 }
 
-bool ProxyClient::PeerRead() {
+int ProxyClient::PeerRead() {
     char buffer[1024];
+    int  length;
     while (true) {
         memset(buffer, 0, 1024);
         int nread = m_netio->Recv(m_peer_handle, buffer, sizeof(buffer)-1);
         if (nread == 0) {
-            // connection closed
-            // delete this;
-            break;
+            return 0;
         } else if (nread== -1) {
-            if (errno == EAGAIN) {
-                return true;
-            }  else {
-                INF("remote read error %s,code:%d", strerror(errno), nread);
-                // delete this;
-                break;
-            }
+            INF("remote read error %s,code:%d", strerror(errno), nread);
+            return -1;
         }
+        length += nread;
         client_write_queue_.push_back(new xlib::Buffer(buffer, nread));
     }
     Write();
-    return true;
+    return length;
 }
 
-bool ProxyClient::PeerWrite() {
+int ProxyClient::PeerWrite() {
+    int length;
     while (!remote_write_queue_.empty()) {
         xlib::Buffer* buffer = remote_write_queue_.front();
         int written = m_netio->Send(m_peer_handle, buffer->Bytes(), buffer->Length());
-        if (written == -1) {
-            if (errno == EAGAIN) {
-                return true;
-            } else {
-                INF("remote write error %s,code:%d", strerror(errno), written);
-                // delete this;
-                return false;
-            }
+        if (written == 0) {
+            return 0;
+        } else if (written == -1) {
+            INF("remote write error %s,code:%d", strerror(errno), written);
+            return -1;
         }
         buffer->Add(written);
         if (buffer->Length() == 0) {
             remote_write_queue_.pop_front();
             delete buffer;
+        } else {
+            break;
         }
+        length += written;
     }
-    return true;
+    return length;
 }

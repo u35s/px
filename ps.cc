@@ -39,7 +39,17 @@ void ProxyServer::AddPeerClient(uint64_t handle, uint64_t peer_handle) {
 }
 
 void ProxyServer::RemoveClient(uint64_t handle) {
-    DBG("remove client %lu \n", handle);
+    std::unordered_map<uint64_t, std::shared_ptr<ProxyClient>>::iterator it =
+        m_client_map.find(handle);
+    if (it == m_client_map.end()) {
+        return;
+    }
+    uint64_t peer_handle = it->second->GetPeerHandle();
+    if (peer_handle != 0) {
+        INF("remove peer client %lu", peer_handle);
+        m_client_map.erase(peer_handle);
+    }
+    INF("remove client %lu", handle);
     m_client_map.erase(handle);
 }
 
@@ -49,7 +59,9 @@ void ProxyServer::SendData(uint64_t handle) {
     if (it == m_client_map.end()) {
         return;
     }
-    it->second->Update(false, handle);
+    if (-1 == it->second->Update(false, handle)) {
+        RemoveClient(handle);
+    }
 }
 
 void ProxyServer::RecvData(uint64_t handle) {
@@ -58,7 +70,9 @@ void ProxyServer::RecvData(uint64_t handle) {
     if (it == m_client_map.end()) {
         return;
     }
-    it->second->Update(true, handle);
+    if (-1 == it->second->Update(true, handle)) {
+        RemoveClient(handle);
+    }
 }
 
 void ProxyServer::Update() {

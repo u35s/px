@@ -4,19 +4,41 @@
 #include <execinfo.h>
 #include <cxxabi.h>
 #include <arpa/inet.h>
+#include <string.h>
+#include <unistd.h>
 #include <iostream>
 #include <stack>
 #include <memory>
-#include <boost/algorithm/string.hpp>
 #include "xlib.h"
 #include "log.h"
 
 namespace xlib {
 
-void split(const std::string& text,
-           const std::string& sep,
-           std::vector<std::string> strs) {
-    boost::split(strs, text, boost::is_any_of(sep), boost::token_compress_on);
+void split(const std::string& str,
+    const std::string& delim,
+    std::vector<std::string>* result) {
+    if (str.empty()) {
+        return;
+    }
+    if (delim[0] == '\0') {
+        result->push_back(str);
+        return;
+    }
+
+    size_t delim_length = delim.length();
+
+    for (std::string::size_type begin_index = 0; begin_index < str.size();) {
+        std::string::size_type end_index = str.find(delim, begin_index);
+        if (end_index == std::string::npos) {
+            result->push_back(str.substr(begin_index));
+            return;
+        }
+        if (end_index > begin_index) {
+            result->push_back(str.substr(begin_index, (end_index - begin_index)));
+        }
+
+        begin_index = end_index + delim_length;
+    }
 }
 
 int atoi(char* a) { return std::atoi(a); }
@@ -63,7 +85,7 @@ void demangle_symbol(std::string* symbol) {
     size_t size = 0;
     int status = -4;
     char temp[256] = {'\0'};
-    if (int sz = sscanf(symbol->c_str(), "%*[^(_]%[^ )+]", temp) == 1) {
+    if (sscanf(symbol->c_str(), "%*[^(_]%[^ )+]", temp) == 1) {
         std::unique_ptr<char, void(*)(void*)> demangled {
             abi::__cxa_demangle(temp, NULL, &size, &status),
             std::free
