@@ -10,7 +10,7 @@ px能让你自定义规则,以实现国内国外智能上网.
 
 # 安装
 ```shell
-yum install gcc-c++ spdlog boost-devel
+yum install gcc-c++
 git clone https://github.com/u35s/px.git && cd px && make 
 ```
 # 使用
