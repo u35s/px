@@ -16,7 +16,7 @@ ProxyServer ps;
 int main(int argc, char **argv) {
     int port = 1079;
     if (argc >= 2) {
-        port = xlib::atoi(argv[1]);
+        port = xlib::Atoi(argv[1]);
         if (argc >= 4) {
             conf_forward = true;
             conf_domain = argv[2];

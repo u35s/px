@@ -8,6 +8,7 @@
 #include <vector>
 #include "xlib/xlib.h"
 #include "xlib/log.h"
+#include "./ps.h"
 #include "./pc.h"
 
 ProxyClient::ProxyClient(const uint64_t handle, xlib::NetIO* netio)
@@ -86,7 +87,7 @@ int ProxyClient::ParseRequest() {
     }
     // LOG("\n");
     std::vector<std::string> vec;
-    xlib::split(first_buf_.str(), " ", &vec);
+    xlib::Split(first_buf_.str(), " ", &vec);
     // DBG("vec size %zu, %s", vec.size(), first_buf_.str().c_str())
     if (vec.size() < 2) {
         return -1;
@@ -94,7 +95,7 @@ int ProxyClient::ParseRequest() {
     std::string host, port, proto;
     if (vec[0] == "CONNECT") {
         std::vector<std::string> two;
-        xlib::split(vec[1], ":", &two);
+        xlib::Split(vec[1], ":", &two);
         if (two.size() != 2) {
             return -1;
         }
@@ -103,13 +104,13 @@ int ProxyClient::ParseRequest() {
         proto = "https";
     } else {
         std::vector<std::string> third;
-        xlib::split(vec[1], "/", &third);
+        xlib::Split(vec[1], "/", &third);
         // DBG("third size %zu, %s", third.size(), vec[1].c_str())
         if (third.size() < 2) {
             return -1;
         }
         std::vector<std::string> ot;
-        xlib::split(third[1], ":", &ot);
+        xlib::Split(third[1], ":", &ot);
         // DBG("ot size %zu, %s", ot.size(), third[1].c_str())
         if (ot.size() == 1) {
             host = ot[0];
@@ -133,7 +134,7 @@ int ProxyClient::ParseRequest() {
         used_host = std::string(conf_domain);
         used_port = std::string(conf_port);
     }
-    if (xlib::get_ip_by_domain(used_host.c_str(), ip) < 0) {
+    if (xlib::GetIpByDomain(used_host.c_str(), ip) < 0) {
         return -1;
     }
 

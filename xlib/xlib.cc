@@ -14,12 +14,12 @@
 #include <memory>
 #include <cstdlib>
 
-#include "xlib/xlib.h"
-#include "xlib/log.h"
+#include "./xlib.h"
+#include "./log.h"
 
 namespace xlib {
 
-void split(const std::string& str,
+void Split(const std::string& str,
     const std::string& delim,
     std::vector<std::string>* result) {
     if (str.empty()) {
@@ -46,28 +46,9 @@ void split(const std::string& str,
     }
 }
 
-int atoi(char* a) { return std::atoi(a); }
+int Atoi(char* a) { return std::atoi(a); }
 
-int connect_to(struct sockaddr_in* addr) {
-    int fd = socket(PF_INET, SOCK_STREAM, 0);
-    uint64_t ul = 3;
-    ioctl(fd, FIOASYNC, &ul);
-    if (int res = connect(fd, (struct sockaddr *)addr, sizeof(*addr)) < 0) {
-        close(fd);
-        return res;
-    }
-    return fd;
-}
-
-int connect_to(char* host, int port) {
-    struct sockaddr_in addr;
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
-    addr.sin_addr.s_addr = inet_addr(host);
-    return connect_to(&addr);
-}
-
-int get_ip_by_domain(const char *domain, char *ip) {
+int GetIpByDomain(const char *domain, char *ip) {
     char **pptr;
     struct hostent *hptr;
 
@@ -86,7 +67,7 @@ int get_ip_by_domain(const char *domain, char *ip) {
     return -1;
 }
 
-void demangle_symbol(std::string* symbol) {
+void DemangleSymbol(std::string* symbol) {
     size_t size = 0;
     int status = -4;
     char temp[256] = {'\0'};
@@ -104,7 +85,7 @@ void demangle_symbol(std::string* symbol) {
     }
 }
 
-void get_stack_trace(std::string* stack) {
+void GetStackTrace(std::string* stack) {
     void* addresses[1024];
     int size = backtrace(addresses, 1024);
     std::unique_ptr<char*, void(*)(void*)> symbols {
@@ -113,15 +94,15 @@ void get_stack_trace(std::string* stack) {
     };
     for (int i = 0; i < size; ++i) {
         std::string demangled(symbols.get()[i]);
-        demangle_symbol(&demangled);
+        DemangleSymbol(&demangled);
         stack->append(demangled);
         stack->append("\n");
     }
 }
 
-void print_stack() {
+void PrintStack() {
     std::string stack;
-    get_stack_trace(&stack);
+    GetStackTrace(&stack);
     ERR("%s", stack.c_str());
 }
 
@@ -132,9 +113,10 @@ Buffer::Buffer(const char *bytes, int len):
     data_[len_] = '\0';
 }
 
-Buffer::~Buffer() { delete [] data_; }
-char* Buffer::Bytes() { return data_+pos_; }
-int Buffer::Length() { return len_ - pos_; }
-void Buffer::Add(int n) { pos_ += n; }
+Buffer::~Buffer()        { delete [] data_; }
+
+char* Buffer::Bytes()    { return data_+pos_; }
+int   Buffer::Length()   { return len_ - pos_; }
+void  Buffer::Add(int n) { pos_ += n; }
 
 }  // namespace xlib

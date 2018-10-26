@@ -12,29 +12,25 @@
 
 namespace xlib {
 
-void split(const std::string& text, const std::string& sep, std::vector<std::string>* strs);
+void Split(const std::string& text, const std::string& sep, std::vector<std::string>* strs);
 
-int atoi(char* a);
+int Atoi(char* a);
 
-int connect_to(struct sockaddr_in* addr);
+int GetIpByDomain(const char *domain, char *ip);
 
-int connect_to(char* host, int port);
-
-int get_ip_by_domain(const char *domain, char *ip);
-
-void print_stack();
+void PrintStack();
 
 class Buffer {
  public:
     Buffer(const char *bytes, int len);
-    virtual ~Buffer();
+    ~Buffer();
     char* Bytes();
-    int Length();
-    void Add(int n);
+    int   Length();
+    void  Add(int n);
  private:
     char *data_;
-    int len_;
-    int pos_;
+    int  len_;
+    int  pos_;
 };
 
 }  // namespace xlib
