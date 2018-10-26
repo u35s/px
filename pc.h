@@ -1,3 +1,7 @@
+/*
+ * Copyright [2018] <Copyright u35s>
+ */
+
 #ifndef PC_H_
 #define PC_H_
 
@@ -6,7 +10,6 @@
 #include <string>
 #include "xlib/net_util.h"
 #include "xlib/xlib.h"
-#include "ps.h"
 
 class ProxyClient{
  public:

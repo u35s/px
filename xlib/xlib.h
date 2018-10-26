@@ -1,3 +1,7 @@
+/*
+ * Copyright [2018] <Copyright u35s>
+ */
+
 #ifndef XLIB_XLIB_H_
 #define XLIB_XLIB_H_
 

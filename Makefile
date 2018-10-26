@@ -5,3 +5,5 @@ default:main
 
 main:
 	$(gcc) main.cc ps.cc pc.cc xlib/xlib.cc xlib/net_util.cc -o px
+check:
+	find ./ -regex ".*\.cc\|.*\.h" | xargs ./tools/cpplint.py

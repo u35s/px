@@ -1,9 +1,13 @@
+/*
+ * Copyright [2018] <Copyright u35s>
+ */
+
 #ifndef XLIB_NET_UTIL_H_
 #define XLIB_NET_UTIL_H_
 
+#include <stdint.h>
 #include <list>
 #include <string>
-#include <stdint.h>
 
 namespace xlib {
 

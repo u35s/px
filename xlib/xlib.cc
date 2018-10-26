@@ -1,5 +1,8 @@
+/*
+ * Copyright [2018] <Copyright u35s>
+ */
+
 #include <sys/ioctl.h>
-#include <cstdlib>
 #include <netdb.h>
 #include <execinfo.h>
 #include <cxxabi.h>
@@ -9,8 +12,10 @@
 #include <iostream>
 #include <stack>
 #include <memory>
-#include "xlib.h"
-#include "log.h"
+#include <cstdlib>
+
+#include "xlib/xlib.h"
+#include "xlib/log.h"
 
 namespace xlib {
 
@@ -45,7 +50,7 @@ int atoi(char* a) { return std::atoi(a); }
 
 int connect_to(struct sockaddr_in* addr) {
     int fd = socket(PF_INET, SOCK_STREAM, 0);
-    unsigned long ul = 3;
+    uint64_t ul = 3;
     ioctl(fd, FIOASYNC, &ul);
     if (int res = connect(fd, (struct sockaddr *)addr, sizeof(*addr)) < 0) {
         close(fd);

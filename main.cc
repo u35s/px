@@ -1,7 +1,11 @@
+/*
+ * Copyright [2018] <Copyright u35s>
+ */
+
 #include "xlib/xlib.h"
 #include "xlib/log.h"
 
-#include "ps.h"
+#include "./ps.h"
 
 char* conf_domain;
 char* conf_port;

@@ -1,3 +1,7 @@
+/*
+ * Copyright [2018] <Copyright u35s>
+ */
+
 #ifndef XLIB_LOG_H_
 #define XLIB_LOG_H_
 

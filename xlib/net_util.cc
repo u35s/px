@@ -1,3 +1,7 @@
+/*
+ * Copyright [2018] <Copyright u35s>
+ */
+
 #include <fcntl.h>
 #include <errno.h>
 #include <stdio.h>
@@ -16,8 +20,8 @@
 #include <sys/types.h>
 #include <sys/epoll.h>
 
-#include "net_util.h"
-#include "log.h"
+#include "xlib/net_util.h"
+#include "xlib/log.h"
 
 namespace xlib {
 
@@ -220,7 +224,7 @@ NetAddr NetIO::ConnectPeer(const std::string& ip, uint16_t port) {
             ERR("invalid address[%s:%u]", ip.c_str(), port);
             break;
         }
-        // socket_info->_state |= CONNECT_ADDR;
+        socket_info->_state |= CONNECT_ADDR;
         if (RawConnect(net_addr, socket_info) < 0) {
             ERR("connect address[%s:%u] fail", ip.c_str(), port);
             break;
@@ -493,6 +497,7 @@ int32_t NetIO::RawConnect(NetAddr net_addr, SocketInfo* socket_info) {
         close(s_fd);
         return -1;
     }
+    DBG("raw connect,ret:%d,einprogress:%d", ret, errno == EINPROGRESS);
 
     socket_info->_socket_fd = s_fd;
     if (NULL != m_epoll) {

@@ -1,10 +1,14 @@
+/*
+ * Copyright [2018] <Copyright u35s>
+ */
+
 #ifndef PS_H_
 #define PS_H_
 
 #include <memory>
 #include <unordered_map>
 #include "xlib/net_util.h"
-#include "pc.h"
+#include "./pc.h"
 
 class ProxyClient;
 class ProxyServer{

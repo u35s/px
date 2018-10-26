@@ -1,3 +1,7 @@
+/*
+ * Copyright [2018] <Copyright u35s>
+ */
+
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/epoll.h>
@@ -5,7 +9,7 @@
 #include <iostream>
 #include "xlib/net_util.h"
 #include "xlib/log.h"
-#include "ps.h"
+#include "./ps.h"
 
 ProxyServer::ProxyServer()
     : m_netio(new xlib::NetIO()), m_port(0), m_epoll(new xlib::Epoll()) {
@@ -25,17 +29,19 @@ void ProxyServer::Init(uint32_t port) {
 
 void ProxyServer::NewClient(uint64_t handle) {
     std::shared_ptr<ProxyClient> client(new ProxyClient(handle, m_netio));
-    client->Update(true, handle);
     m_client_map[handle] = client;
+    client->Update(true, handle);
 }
 
 void ProxyServer::AddPeerClient(uint64_t handle, uint64_t peer_handle) {
     std::unordered_map<uint64_t, std::shared_ptr<ProxyClient>>::iterator it =
         m_client_map.find(handle);
     if (it == m_client_map.end()) {
+        DBG("%lu add peer client no handle, %lu", handle, peer_handle)
         return;
     }
     m_client_map[peer_handle] = it->second;
+    DBG("handle %lu, add peer client %lu", handle, peer_handle);
 }
 
 void ProxyServer::RemoveClient(uint64_t handle) {
@@ -57,6 +63,7 @@ void ProxyServer::SendData(uint64_t handle) {
     std::unordered_map<uint64_t, std::shared_ptr<ProxyClient>>::iterator it =
         m_client_map.find(handle);
     if (it == m_client_map.end()) {
+        DBG("send data no handle, %lu", handle)
         return;
     }
     if (-1 == it->second->Update(false, handle)) {
@@ -68,6 +75,7 @@ void ProxyServer::RecvData(uint64_t handle) {
     std::unordered_map<uint64_t, std::shared_ptr<ProxyClient>>::iterator it =
         m_client_map.find(handle);
     if (it == m_client_map.end()) {
+        DBG("recv data no handle, %lu", handle)
         return;
     }
     if (-1 == it->second->Update(true, handle)) {
@@ -88,12 +96,15 @@ void ProxyServer::Update() {
         return;
     }
     if (events & EPOLLERR) {
+        // DBG("epollerr %lu", netaddr)
         RemoveClient(netaddr);
     }
     if (events & EPOLLOUT) {
+        // DBG("epollout %lu", netaddr)
         SendData(netaddr);
     }
     if (events & EPOLLIN) {
+        // DBG("epollin %lu", netaddr)
         const xlib::SocketInfo* socket_info = m_netio->GetSocketInfo(netaddr);
         if (socket_info->_state & xlib::TCP_PROTOCOL) {
             if (socket_info->_state & xlib::LISTEN_ADDR) {
