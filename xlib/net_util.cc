@@ -20,8 +20,8 @@
 #include <sys/types.h>
 #include <sys/epoll.h>
 
-#include "./net_util.h"
-#include "./log.h"
+#include "xlib/net_util.h"
+#include "xlib/log.h"
 
 namespace xlib {
 

@@ -14,8 +14,8 @@
 #include <memory>
 #include <cstdlib>
 
-#include "./xlib.h"
-#include "./log.h"
+#include "xlib/xlib.h"
+#include "xlib/log.h"
 
 namespace xlib {
 
