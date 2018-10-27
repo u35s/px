@@ -14,6 +14,7 @@ bool  conf_forward = false;
 ProxyServer ps;
 
 int main(int argc, char **argv) {
+    setbuf(stdout, NULL);
     int port = 1079;
     if (argc >= 2) {
         port = xlib::Atoi(argv[1]);
