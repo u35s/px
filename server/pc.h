@@ -17,6 +17,7 @@ class ProxyClient{
     ~ProxyClient();
     int Update(bool read, uint64_t handle);
     uint64_t GetPeerHandle();
+
  private:
     int Write();
     int Read();
@@ -30,10 +31,17 @@ class ProxyClient{
     std::stringbuf first_buf_;
     std::stringbuf parsed_buf_;
 
+    std::string m_remote_host;
+
     uint64_t m_handle;
     uint64_t m_peer_handle;
+
+    int m_recv_data_len;
+    int m_send_data_len;
+
     bool first_line_read_;
     bool parsed_;
+
     xlib::NetIO* m_netio;
 };
 

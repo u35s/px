@@ -23,7 +23,11 @@ class ProxyServer{
     void SendData(uint64_t handle);
     void RecvData(uint64_t handle);
     void Serve();
-    void Update();
+    void Idle();
+
+    uint64_t Update();
+    uint64_t Stop();
+    uint64_t ProcessMessage();
 
     xlib::NetIO* m_netio;
  private:

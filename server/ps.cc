@@ -3,6 +3,8 @@
  */
 
 #include <fcntl.h>
+#include <signal.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <sys/epoll.h>
 #include <cstdio>
@@ -10,6 +12,16 @@
 #include "xlib/net_util.h"
 #include "xlib/log.h"
 #include "server/ps.h"
+
+static struct {
+    int32_t _stop;
+} g_app_events = { 0 };
+
+void on_stop(int32_t signal) {
+    g_app_events._stop = signal;
+}
+
+
 
 ProxyServer::ProxyServer()
     : m_netio(new xlib::NetIO()), m_port(0), m_epoll(new xlib::Epoll()) {
@@ -25,6 +37,9 @@ void ProxyServer::Init(uint32_t port) {
     m_epoll->Init(1024);
     m_netio->Init(m_epoll);
     m_netio->Listen("tcp://0.0.0.0", m_port);
+    signal(SIGPIPE, SIG_IGN);
+    signal(SIGHUP, on_stop);
+    signal(SIGINT, on_stop);
 }
 
 void ProxyServer::NewClient(uint64_t handle) {
@@ -83,17 +98,31 @@ void ProxyServer::RecvData(uint64_t handle) {
     }
 }
 
-void ProxyServer::Update() {
-    int32_t ret = m_epoll->Wait(-1);
+uint64_t ProxyServer::Update() {
+    uint64_t num = 0;
+    for (uint32_t i = 0; i < 100; ++i) {
+       if (ProcessMessage() <= 0) {
+           break;
+       }
+       num++;
+    }
+    if (num > 0) {
+        // DBG("process message %lu", num);
+    }
+    return num;
+}
+
+uint64_t ProxyServer::ProcessMessage() {
+    int32_t ret = m_epoll->Wait(0);
     if (ret <= 0) {
-       return;
+       return 0;
     }
 
     uint32_t events  = 0;
     uint64_t netaddr = 0;
     ret = m_epoll->GetEvent(&events, &netaddr);
     if (ret != 0) {
-        return;
+        return 0;
     }
     if (events & EPOLLERR) {
         // DBG("epollerr %lu", netaddr)
@@ -117,10 +146,29 @@ void ProxyServer::Update() {
             }
         }
     }
+    return 1;
+}
+
+uint64_t ProxyServer::Stop() {
+    DBG("stoped");
+    return 0;
+}
+
+void ProxyServer::Idle() {
+    usleep(100);
 }
 
 void ProxyServer::Serve() {
     do {
-        Update();
+         if (g_app_events._stop) {
+            if (Stop() == 0) {
+                g_app_events._stop = 0;
+                break;
+            }
+        }
+
+        if (Update() <= 0) {
+            Idle();
+        }
     } while (true);
 }

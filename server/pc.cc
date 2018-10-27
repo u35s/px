@@ -12,11 +12,17 @@
 #include "server/pc.h"
 
 ProxyClient::ProxyClient(const uint64_t handle, xlib::NetIO* netio)
-    : m_handle(handle), m_peer_handle(0), first_line_read_(false), parsed_(false),
+    : m_handle(handle), m_peer_handle(0),
+      m_recv_data_len(0), m_send_data_len(0), first_line_read_(false), parsed_(false),
       m_netio(netio) {
 }
 
 ProxyClient::~ProxyClient() {
+    auto socket_info = m_netio->GetSocketInfo(m_handle);
+
+    DBG("client ip " NETADDR_IP_PRINT_FMT ", remote host %s, recv %d, send %d,",
+        NETADDR_IP_PRINT_CTX(socket_info), m_remote_host.c_str(),
+        m_recv_data_len, m_send_data_len);
     m_netio->Close(m_handle);
     m_netio->Close(m_peer_handle);
 
@@ -38,12 +44,14 @@ int ProxyClient::Update(bool read, uint64_t handle) {
         length = ParseRequest();
     } else if (read && handle == m_handle) {
         length = Read();
+        m_recv_data_len += (length > 0 ? length : 0);
         // DBG("read %d, no peer, length %d", read, length);
     } else if (!read && handle == m_handle) {
         length = Write();
         // DBG("read %d, no peer, length %d", read, length);
     } else if (read && handle == m_peer_handle) {
         length = PeerRead();
+        m_send_data_len += (length > 0 ? length : 0);
         // DBG("read %d, peer, length %d", read, length);
     } else if (!read && handle == m_peer_handle) {
         length = PeerWrite();
@@ -127,7 +135,7 @@ int ProxyClient::ParseRequest() {
     extern char* conf_domain;
     extern char* conf_port;
     extern bool conf_forward;
-
+    m_remote_host = std::string(host + ":" + port);
     char ip[16];
     std::string used_host = host, used_port = port;
     if (conf_forward) {
