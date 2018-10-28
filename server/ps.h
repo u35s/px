@@ -8,7 +8,7 @@
 #include <memory>
 #include <unordered_map>
 #include "xlib/net_util.h"
-#include "./pc.h"
+#include "server/pc.h"
 
 class ProxyClient;
 class ProxyServer{
