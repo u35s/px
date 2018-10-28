@@ -20,7 +20,7 @@ ProxyClient::ProxyClient(const uint64_t handle, xlib::NetIO* netio)
 ProxyClient::~ProxyClient() {
     auto socket_info = m_netio->GetSocketInfo(m_handle);
 
-    DBG("client ip " NETADDR_IP_PRINT_FMT ", remote host %s, recv %d, send %d,",
+    INF("client ip " NETADDR_IP_PRINT_FMT ", remote host %s, recv %d, send %d,",
         NETADDR_IP_PRINT_CTX(socket_info), m_remote_host.c_str(),
         m_recv_data_len, m_send_data_len);
     m_netio->Close(m_handle);
@@ -171,8 +171,8 @@ int ProxyClient::ParseRequest() {
     ps.AddPeerClient(m_handle, m_peer_handle);
     parsed_ = true;
     int length = PeerWrite();
-    DBG("connect write %d", length)
-    return 0;
+    DBG("connect write %d", length);
+    return length;
 }
 
 int ProxyClient::Read() {
@@ -184,7 +184,7 @@ int ProxyClient::Read() {
         if (nread == 0) {
             break;
         } else if (nread == -1) {
-            INF("client read error %s,code:%d", strerror(errno), nread);
+            DBG("client read error %s,code:%d", strerror(errno), nread);
             return -1;
         }
         length += nread;
@@ -202,7 +202,7 @@ int ProxyClient::Write() {
         if (written == 0) {
             break;
         } else if (written == -1) {
-            INF("client write error %s,code:%d", strerror(errno), written);
+            DBG("client write error %s,code:%d", strerror(errno), written);
             return -1;
         }
         buffer->Add(written);
@@ -226,7 +226,7 @@ int ProxyClient::PeerRead() {
         if (nread == 0) {
             break;
         } else if (nread== -1) {
-            INF("remote read error %s,code:%d", strerror(errno), nread);
+            DBG("remote read error %s,code:%d", strerror(errno), nread);
             return -1;
         }
         length += nread;
@@ -244,7 +244,7 @@ int ProxyClient::PeerWrite() {
         if (written == 0) {
             break;
         } else if (written == -1) {
-            INF("remote write error %s,code:%d", strerror(errno), written);
+            DBG("remote write error %s,code:%d", strerror(errno), written);
             return -1;
         }
         buffer->Add(written);

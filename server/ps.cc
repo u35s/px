@@ -52,7 +52,7 @@ void ProxyServer::AddPeerClient(uint64_t handle, uint64_t peer_handle) {
     std::unordered_map<uint64_t, std::shared_ptr<ProxyClient>>::iterator it =
         m_client_map.find(handle);
     if (it == m_client_map.end()) {
-        DBG("%lu add peer client no handle, %lu", handle, peer_handle)
+        DBG("%lu add peer client no handle, %lu", handle, peer_handle);
         return;
     }
     m_client_map[peer_handle] = it->second;
@@ -67,10 +67,10 @@ void ProxyServer::RemoveClient(uint64_t handle) {
     }
     uint64_t peer_handle = it->second->GetPeerHandle();
     if (peer_handle != 0) {
-        INF("remove peer client %lu", peer_handle);
+        DBG("remove peer client %lu", peer_handle);
         m_client_map.erase(peer_handle);
     }
-    INF("remove client %lu", handle);
+    DBG("remove client %lu", handle);
     m_client_map.erase(handle);
 }
 
@@ -78,7 +78,7 @@ void ProxyServer::SendData(uint64_t handle) {
     std::unordered_map<uint64_t, std::shared_ptr<ProxyClient>>::iterator it =
         m_client_map.find(handle);
     if (it == m_client_map.end()) {
-        DBG("send data no handle, %lu", handle)
+        DBG("send data no handle, %lu", handle);
         return;
     }
     if (-1 == it->second->Update(false, handle)) {
@@ -90,7 +90,7 @@ void ProxyServer::RecvData(uint64_t handle) {
     std::unordered_map<uint64_t, std::shared_ptr<ProxyClient>>::iterator it =
         m_client_map.find(handle);
     if (it == m_client_map.end()) {
-        DBG("recv data no handle, %lu", handle)
+        DBG("recv data no handle, %lu", handle);
         return;
     }
     if (-1 == it->second->Update(true, handle)) {
@@ -125,15 +125,15 @@ uint64_t ProxyServer::ProcessMessage() {
         return 0;
     }
     if (events & EPOLLERR) {
-        // DBG("epollerr %lu", netaddr)
+        // DBG("epollerr %lu", netaddr);
         RemoveClient(netaddr);
     }
     if (events & EPOLLOUT) {
-        // DBG("epollout %lu", netaddr)
+        // DBG("epollout %lu", netaddr);
         SendData(netaddr);
     }
     if (events & EPOLLIN) {
-        // DBG("epollin %lu", netaddr)
+        // DBG("epollin %lu", netaddr);
         const xlib::SocketInfo* socket_info = m_netio->GetSocketInfo(netaddr);
         if (socket_info->_state & xlib::TCP_PROTOCOL) {
             if (socket_info->_state & xlib::LISTEN_ADDR) {
@@ -155,7 +155,7 @@ uint64_t ProxyServer::Stop() {
 }
 
 void ProxyServer::Idle() {
-    usleep(100);
+    usleep(1000);
 }
 
 void ProxyServer::Serve() {
