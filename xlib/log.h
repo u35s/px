@@ -9,10 +9,42 @@
 
 namespace xlib {
 
-#define DBG(fmt, ...) printf("[%s][DBG] " fmt "\n", xlib::Time::Now().String().c_str(), ##__VA_ARGS__);
-// #define DBG(fmt, ...)
-#define INF(fmt, ...) printf("[%s][INF] " fmt "\n", xlib::Time::Now().String().c_str(), ##__VA_ARGS__);
-#define ERR(fmt, ...) printf("[%s][ERR] " fmt "\n", xlib::Time::Now().String().c_str(), ##__VA_ARGS__);
+#define TRACE(fmt, ...) xlib::Log::Instance().Write(xlib::LOG_PRIORITY_TRACE, fmt, ##__VA_ARGS__);
+#define DBG(fmt, ...)   xlib::Log::Instance().Write(xlib::LOG_PRIORITY_DEBUG, fmt, ##__VA_ARGS__);
+#define INF(fmt, ...)   xlib::Log::Instance().Write(xlib::LOG_PRIORITY_INFO, fmt, ##__VA_ARGS__);
+#define ERR(fmt, ...)   xlib::Log::Instance().Write(xlib::LOG_PRIORITY_ERROR, fmt, ##__VA_ARGS__);
+#define FATAL(fmt, ...) xlib::Log::Instance().Write(xlib::LOG_PRIORITY_FATAL, fmt, ##__VA_ARGS__);
+
+// TRACE : 单步调试\n
+// DEBUG : 调试信息、服务处理关键路径\n
+// INFO  : 统计、系统操作信息（如配置重载、控制命令）\n
+// ERROR : 逻辑错误，服务处理失败\n
+// FATAL : 系统错误，无法提供服务\n
+typedef enum {
+    LOG_PRIORITY_TRACE = 0,
+    LOG_PRIORITY_DEBUG,
+    LOG_PRIORITY_INFO,
+    LOG_PRIORITY_ERROR,
+    LOG_PRIORITY_FATAL,
+} LOG_PRIORITY;
+
+class Log {
+ protected:
+    Log();
+ public:
+    ~Log();
+
+    static Log& Instance() {
+        static Log s_log_instance;
+        return s_log_instance;
+    }
+
+    void Write(LOG_PRIORITY pri, const char* fmt, ...);
+
+    void SetLogPriority(LOG_PRIORITY pri);
+ private:
+    LOG_PRIORITY m_log_priority;
+};
 
 }  // namespace xlib
 
