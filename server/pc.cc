@@ -132,8 +132,8 @@ int ProxyClient::ParseRequest() {
         proto = "http";
     }
 
-    extern char* conf_domain;
-    extern char* conf_port;
+    extern char conf_domain[];
+    extern char conf_port[];
     extern bool conf_forward;
     m_remote_host = std::string(host + ":" + port);
     char ip[16];

@@ -42,6 +42,7 @@ void ProxyServer::Init(uint32_t port) {
     signal(SIGPIPE, SIG_IGN);
     signal(SIGHUP, on_stop);
     signal(SIGINT, on_stop);
+    setbuf(stdout, NULL);
 }
 
 void ProxyServer::NewClient(uint64_t handle) {
