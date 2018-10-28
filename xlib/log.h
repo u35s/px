@@ -15,11 +15,6 @@ namespace xlib {
 #define ERR(fmt, ...)   xlib::Log::Instance().Write(xlib::LOG_PRIORITY_ERROR, fmt, ##__VA_ARGS__);
 #define FATAL(fmt, ...) xlib::Log::Instance().Write(xlib::LOG_PRIORITY_FATAL, fmt, ##__VA_ARGS__);
 
-// TRACE : 单步调试\n
-// DEBUG : 调试信息、服务处理关键路径\n
-// INFO  : 统计、系统操作信息（如配置重载、控制命令）\n
-// ERROR : 逻辑错误，服务处理失败\n
-// FATAL : 系统错误，无法提供服务\n
 typedef enum {
     LOG_PRIORITY_TRACE = 0,
     LOG_PRIORITY_DEBUG,

@@ -40,7 +40,6 @@ void Log::Write(LOG_PRIORITY pri, const char* fmt, ...) {
     if (len < 0) {
         len = 0;
     }
-    // 其他log以有'\n'，PLOG需要再补换行
     uint32_t tail = len + pre_len;
     if (tail > (ARRAYSIZE(buff) - 2)) {
         tail = ARRAYSIZE(buff) - 2;
