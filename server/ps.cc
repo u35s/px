@@ -9,8 +9,10 @@
 #include <sys/epoll.h>
 #include <cstdio>
 #include <iostream>
+
 #include "xlib/net_util.h"
 #include "xlib/log.h"
+#include "xlib/time.h"
 #include "server/ps.h"
 
 static struct {
@@ -159,6 +161,7 @@ void ProxyServer::Idle() {
 }
 
 void ProxyServer::Serve() {
+    uint64_t num = 0;
     do {
          if (g_app_events._stop) {
             if (Stop() == 0) {
@@ -167,8 +170,14 @@ void ProxyServer::Serve() {
             }
         }
 
-        if (Update() <= 0) {
+        uint64_t start = xlib::Time::Micro();
+        num = Update();
+        uint64_t end = xlib::Time::Micro();
+
+        if (num <= 0) {
             Idle();
+        } else {
+            DBG("update process %lu msg, run %lu microseond", num, end-start);
         }
     } while (true);
 }

@@ -5,10 +5,15 @@
 #ifndef XLIB_LOG_H_
 #define XLIB_LOG_H_
 
-#define LOG(fmt, ...) printf(fmt,  ##__VA_ARGS__);
-// #define DBG(fmt, ...) printf(fmt,  ##__VA_ARGS__); printf("\n)
-#define DBG(fmt, ...)
-#define INF(fmt, ...) printf(fmt,  ##__VA_ARGS__); printf("\n")
-#define ERR(fmt, ...) printf(fmt,  ##__VA_ARGS__); printf("\n")
+#include "xlib/time.h"
+
+namespace xlib {
+
+#define DBG(fmt, ...) printf("[%s][DBG] " fmt "\n", xlib::Time::Now().String().c_str(), ##__VA_ARGS__);
+// #define DBG(fmt, ...)
+#define INF(fmt, ...) printf("[%s][INF] " fmt "\n", xlib::Time::Now().String().c_str(), ##__VA_ARGS__);
+#define ERR(fmt, ...) printf("[%s][ERR] " fmt "\n", xlib::Time::Now().String().c_str(), ##__VA_ARGS__);
+
+}  // namespace xlib
 
 #endif  // XLIB_LOG_H_
