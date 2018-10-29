@@ -28,13 +28,13 @@ ProxyClient::~ProxyClient() {
 
     while (!remote_write_queue_.empty()) {
         xlib::Buffer* buffer = remote_write_queue_.front();
-        delete buffer;
         remote_write_queue_.pop_front();
+        delete buffer;
     }
     while (!client_write_queue_.empty()) {
         xlib::Buffer* buffer = client_write_queue_.front();
-        delete buffer;
         client_write_queue_.pop_front();
+        delete buffer;
     }
 }
 
@@ -208,7 +208,7 @@ int ProxyClient::Write() {
         buffer->Add(written);
         if (buffer->Length() == 0) {
             client_write_queue_.pop_front();
-            // delete buffer;
+            delete buffer;
         } else {
             break;
         }
