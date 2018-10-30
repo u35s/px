@@ -433,8 +433,12 @@ int32_t NetIO::RawListen(NetAddr net_addr, SocketInfo* socket_info) {
     }
 
     int32_t ret = fcntl(s_fd, F_GETFL);
+    int flags = 1;
     ret = ((ret < 0 || false == NetIO::NON_BLOCK)
         ? ret : (fcntl(s_fd, F_SETFL, ret | O_NONBLOCK)));
+    // 防止出现大量 ESTABLISHED
+    ret = ((ret < 0 || false == NetIO::KEEP_ALIVE || 0 == (TCP_PROTOCOL & socket_info->_state))
+        ? ret : setsockopt(s_fd, SOL_SOCKET, SO_KEEPALIVE, &flags, sizeof(flags)));
     if (ret < 0) {
         ERR("socket set opt failed in %d", errno);
         close(s_fd);
@@ -478,8 +482,12 @@ int32_t NetIO::RawConnect(NetAddr net_addr, SocketInfo* socket_info) {
     }
 
     int32_t ret = fcntl(s_fd, F_GETFL);
+    int flags = 1;
     ret = ((ret < 0 || false == NetIO::NON_BLOCK)
         ? ret : (fcntl(s_fd, F_SETFL, ret | O_NONBLOCK)));
+    // 防止出现大量 ESTABLISHED
+    ret = ((ret < 0 || false == NetIO::KEEP_ALIVE || 0 == (TCP_PROTOCOL & socket_info->_state))
+        ? ret : setsockopt(s_fd, SOL_SOCKET, SO_KEEPALIVE, &flags, sizeof(flags)));
     if (ret < 0) {
         ERR("socket set opt failed in %d", errno);
         close(s_fd);
@@ -526,11 +534,15 @@ int32_t NetIO::RawClose(SocketInfo* socket_info) {
     return ret;
 }
 
+// 水平触发(level trigger)和边缘触发(edge trigger),选用边缘触发
+// 水平触发只要有数据就触发
+// 边缘触发
 int32_t NetIO::OnEvent(NetAddr net_addr, uint32_t events) {
     SocketInfo* socket_info = RawGetSocketInfo(net_addr);
     if (NULL == socket_info || 0 == socket_info->_state) {
         return -1;
     }
+    // 可写时关闭EPOLLOUT.设置非租塞状态
     if ((EPOLLOUT & events) && m_epoll != NULL) {
         socket_info->_state &= (~IN_BLOCKED);
         m_epoll->ModFd(socket_info->_socket_fd, EPOLLIN | EPOLLERR, net_addr);
