@@ -17,9 +17,12 @@ git clone https://github.com/u35s/px.git && cd px && make
 
 ```
 " 本地直连
-./px 8888
+./px -p 8888
 
 " 转发到远程
-./px 8888 u35s.com 8888
+./px -p 8888 -h u35s.com:8888
+
+" 改变日志等级
+./px -p 8888 -l 0
 ```
 
