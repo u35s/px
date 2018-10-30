@@ -6,4 +6,5 @@ default:main
 main:
 	$(gcc) -I. main.cc server/*.cc xlib/*.cc -o px
 check:
-	find ./ -regex ".*\.cc\|.*\.h" | xargs ./tools/cpplint.py
+	find . -name "*.cc" | xargs ./tools/cpplint.py
+	find . -name "*.h"  | xargs ./tools/cpplint.py
