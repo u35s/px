@@ -205,6 +205,12 @@ int32_t NetIO::Send(NetAddr dst_addr, const char* data, uint32_t data_len) {
         RawClose(socket_info);
         return -1;
     }
+    
+    if (m_poll != NULL) {
+          socket_info->_state |= IN_BLOCKED;
+          m_poll->ModFd(socket_info->_socket_fd, POLLIN | POLLOUT | POLLERR, dst_addr);
+    }
+ 
     return static_cast<int32_t>(send_cnt);
 }
 

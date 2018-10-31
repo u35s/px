@@ -45,17 +45,17 @@ int ProxyClient::Update(bool read, uint64_t handle) {
     } else if (read && handle == m_handle) {
         length = Read();
         m_recv_data_len += (length > 0 ? length : 0);
-        // DBG("read %d, no peer, length %d", read, length);
+        TRACE("read %d, no peer, length %d", read, length);
     } else if (!read && handle == m_handle) {
         length = Write();
-        // DBG("read %d, no peer, length %d", read, length);
+        TRACE("read %d, no peer, length %d", read, length);
     } else if (read && handle == m_peer_handle) {
         length = PeerRead();
         m_send_data_len += (length > 0 ? length : 0);
-        // DBG("read %d, peer, length %d", read, length);
+        TRACE("read %d, peer, length %d", read, length);
     } else if (!read && handle == m_peer_handle) {
         length = PeerWrite();
-        // DBG("read %d, peer, length %d", read, length);
+        TRACE("read %d, peer, length %d", read, length);
     }
     return length;
 }
@@ -90,10 +90,10 @@ int ProxyClient::ParseRequest() {
         if (first_line_read_) {
             buf = &parsed_buf_;
         }
-        // LOG("%c", last);
+        // TRACE("%c", last);
         buf->sputn(buffer, 1);
     }
-    // LOG("\n");
+    // TRACE("\n");
     std::vector<std::string> vec;
     xlib::Split(first_buf_.str(), " ", &vec);
     // DBG("vec size %zu, %s", vec.size(), first_buf_.str().c_str())

@@ -137,7 +137,7 @@ uint64_t ProxyServer::ProcessMessage() {
     uint32_t events  = 0;
     uint64_t netaddr = 0;
     ret = m_poll->GetEvent(&events, &netaddr);
-    TRACE("process message, events:%d, ret:%d", events, ret);
+    TRACE("process message, events:%u, netaddr:%lu, ret:%d", events, netaddr, ret);
     if (ret != 0) {
         return 0;
     }
