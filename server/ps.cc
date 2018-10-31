@@ -5,14 +5,22 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <unistd.h>
-#include <sys/epoll.h>
 #include <cstdio>
 #include <iostream>
 
 #include "xlib/net_util.h"
+#include "xlib/net_poll.h"
 #include "xlib/log.h"
 #include "xlib/time.h"
 #include "server/ps.h"
+
+#if defined(__linux__)
+    #include "xlib/net_epoll.h"
+#endif
+
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined (__NetBSD__)
+    #include "xlib/net_kqueue.h"
+#endif
 
 static struct {
     int32_t _stop;
@@ -22,21 +30,27 @@ void on_stop(int32_t signal) {
     g_app_events._stop = signal;
 }
 
-
-
 ProxyServer::ProxyServer()
-    : m_netio(new xlib::NetIO()), m_port(0), m_epoll(new xlib::Epoll()) {
+    : m_netio(NULL), m_port(0), m_poll(NULL) {
 }
 
 ProxyServer::~ProxyServer() {
-    delete m_epoll;
+    delete m_poll;
     delete m_netio;
 }
 
 void ProxyServer::Init(uint32_t port) {
-    m_port = port;
-    m_epoll->Init(1024);
-    m_netio->Init(m_epoll);
+    m_port  = port;
+    m_netio = new xlib::NetIO();
+#if defined(__linux__)
+    m_poll  = new xlib::Epoll();
+#endif
+
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined (__NetBSD__)
+    m_poll  = new xlib::Kqueue();
+#endif
+    m_poll->Init(1024);
+    m_netio->Init(m_poll);
     m_netio->Listen("tcp://0.0.0.0", m_port);
     signal(SIGPIPE, SIG_IGN);
     signal(SIGHUP, on_stop);
@@ -102,40 +116,38 @@ void ProxyServer::RecvData(uint64_t handle) {
 
 uint64_t ProxyServer::Update() {
     uint64_t num = 0;
-    for (uint32_t i = 0; i < 100; ++i) {
+    for (uint32_t i = 0; i < 100; i++) {
        if (ProcessMessage() <= 0) {
            break;
        }
        num++;
     }
     if (num > 0) {
-        // DBG("process message %lu", num);
+        // TRACE("process message %lu", num);
     }
     return num;
 }
 
 uint64_t ProxyServer::ProcessMessage() {
-    int32_t ret = m_epoll->Wait(0);
+    int32_t ret = m_poll->Wait(0);
     if (ret <= 0) {
        return 0;
     }
 
     uint32_t events  = 0;
     uint64_t netaddr = 0;
-    ret = m_epoll->GetEvent(&events, &netaddr);
+    ret = m_poll->GetEvent(&events, &netaddr);
+    TRACE("process message, events:%d, ret:%d", events, ret);
     if (ret != 0) {
         return 0;
     }
-    if (events & EPOLLERR) {
-        // DBG("epollerr %lu", netaddr);
+    if (events & POLLERR) {
         RemoveClient(netaddr);
     }
-    if (events & EPOLLOUT) {
-        // DBG("epollout %lu", netaddr);
+    if (events & POLLOUT) {
         SendData(netaddr);
     }
-    if (events & EPOLLIN) {
-        // DBG("epollin %lu", netaddr);
+    if (events & POLLIN) {
         const xlib::SocketInfo* socket_info = m_netio->GetSocketInfo(netaddr);
         if (socket_info->_state & xlib::TCP_PROTOCOL) {
             if (socket_info->_state & xlib::LISTEN_ADDR) {
@@ -177,7 +189,7 @@ void ProxyServer::Serve() {
         if (num <= 0) {
             Idle();
         } else {
-            DBG("update process %lu msg, run %lu microseond", num, end-start);
+            TRACE("update process %lu msg, run %lu microseond", num, end-start);
         }
     } while (true);
 }

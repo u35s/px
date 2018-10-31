@@ -170,9 +170,10 @@ int ProxyClient::ParseRequest() {
     extern ProxyServer ps;
     ps.AddPeerClient(m_handle, m_peer_handle);
     parsed_ = true;
-    int length = PeerWrite();
-    DBG("connect write %d", length);
-    return length;
+    // int length = PeerWrite();
+    // DBG("connect write %d", length);
+    // return length;
+    return 0;
 }
 
 int ProxyClient::Read() {

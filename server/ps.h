@@ -10,7 +10,6 @@
 #include "xlib/net_util.h"
 #include "server/pc.h"
 
-class ProxyClient;
 class ProxyServer{
  public:
     ProxyServer();
@@ -32,7 +31,7 @@ class ProxyServer{
     xlib::NetIO* m_netio;
  private:
     uint32_t m_port;
-    xlib::Epoll* m_epoll;
+    xlib::Poll* m_poll;
     std::unordered_map<uint64_t, std::shared_ptr<ProxyClient> > m_client_map;
 };
 
