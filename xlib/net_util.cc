@@ -18,9 +18,9 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <sys/epoll.h>
 
 #include "xlib/net_util.h"
+#include "xlib/net_poll.h"
 #include "xlib/log.h"
 
 namespace xlib {
@@ -32,70 +32,6 @@ void SocketInfo::Reset() {
     _port = UINT16_MAX;
     _state = 0;
     ++_uin;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-
-Epoll::Epoll() : m_epoll_fd(-1), m_max_event(1000), m_event_num(0),
-    m_events(NULL), m_bind_net_io(NULL) {
-}
-
-Epoll::~Epoll() {
-    if (m_epoll_fd >= 0) {
-        close(m_epoll_fd);
-    }
-    if (NULL != m_events) {
-        m_event_num = 0;
-        delete []m_events;
-    }
-}
-
-int32_t Epoll::Init(uint32_t max_event) {
-    m_last_error[0] = 0;
-    m_max_event = static_cast<int32_t>(max_event);
-    m_epoll_fd = epoll_create(m_max_event);
-    m_events = new struct epoll_event[max_event];
-    if (m_epoll_fd < 0) {
-        ERR("epoll_create failed in %d", errno);
-        return -1;
-    }
-    return 0;
-}
-
-int32_t Epoll::Wait(int32_t timeout) {
-    m_event_num = epoll_wait(m_epoll_fd, m_events, m_max_event, timeout);
-    return m_event_num;
-}
-
-int32_t Epoll::AddFd(int32_t fd, uint32_t events, uint64_t data) {
-    struct epoll_event eve;
-    eve.events = events;
-    eve.data.u64 = data;
-    return epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, fd, &eve);
-}
-
-int32_t Epoll::DelFd(int32_t fd) {
-    return epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, fd, NULL);
-}
-
-int32_t Epoll::ModFd(int32_t fd, uint32_t events, uint64_t data) {
-    struct epoll_event eve;
-    eve.events = events;
-    eve.data.u64 = data;
-    return epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, fd, &eve);
-}
-
-int32_t Epoll::GetEvent(uint32_t *events, uint64_t *data) {
-    if (m_event_num > 0) {
-        --m_event_num;
-        *events = m_events[m_event_num].events;
-        *data = m_events[m_event_num].data.u64;
-        if (NULL != m_bind_net_io) {
-            m_bind_net_io->OnEvent(*data, *events);
-        }
-        return 0;
-    }
-    return -1;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -117,11 +53,10 @@ NetIO::~NetIO() {
     CloseAll();
 }
 
-int32_t NetIO::Init(Epoll* epoll) {
-    m_last_error[0] = 0;
-    m_epoll = epoll;
-    if (NULL != m_epoll) {
-        m_epoll->m_bind_net_io = this;
+int32_t NetIO::Init(Poll* poll) {
+    m_poll = poll;
+    if (NULL != m_poll) {
+        m_poll->m_bind_net_io = this;
     }
     m_sockets = new SocketInfo[MAX_SOCKET_NUM];
     memset(m_sockets, 0, MAX_SOCKET_NUM * sizeof(SocketInfo));
@@ -205,8 +140,8 @@ NetAddr NetIO::Accept(NetAddr listen_addr) {
     new_socket_info->_ip = cli_addr.sin_addr.s_addr;
     new_socket_info->_port = cli_addr.sin_port;
     new_socket_info->_state |= (TCP_PROTOCOL | ACCEPT_ADDR);
-    if (NULL != m_epoll) {
-        m_epoll->AddFd(new_socket, EPOLLIN | EPOLLERR, net_addr);
+    if (NULL != m_poll) {
+        m_poll->AddFd(new_socket, POLLIN | POLLERR, net_addr);
     }
     return net_addr;
 }
@@ -467,8 +402,8 @@ int32_t NetIO::RawListen(NetAddr net_addr, SocketInfo* socket_info) {
     }
     socket_info->_socket_fd = s_fd;
 
-    if (NULL != m_epoll) {
-        m_epoll->AddFd(s_fd, EPOLLIN | EPOLLERR, net_addr);
+    if (NULL != m_poll) {
+        m_poll->AddFd(s_fd, POLLIN | POLLERR, net_addr);
     }
     return 0;
 }
@@ -508,9 +443,10 @@ int32_t NetIO::RawConnect(NetAddr net_addr, SocketInfo* socket_info) {
     DBG("raw connect,ret:%d,einprogress:%d", ret, errno == EINPROGRESS);
 
     socket_info->_socket_fd = s_fd;
-    if (NULL != m_epoll) {
-        uint32_t events = EPOLLERR | (ret < 0 ? EPOLLOUT : EPOLLIN);
-        m_epoll->AddFd(s_fd, events, net_addr);
+    if (NULL != m_poll) {
+        // uint32_t events = POLLERR | (ret < 0 ? POLLOUT : POLLIN);
+        uint32_t events = POLLERR | POLLOUT | POLLIN;
+        m_poll->AddFd(s_fd, events, net_addr);
         if (ret < 0) {
             socket_info->_state |= IN_BLOCKED;
         } else {
@@ -542,12 +478,12 @@ int32_t NetIO::OnEvent(NetAddr net_addr, uint32_t events) {
     if (NULL == socket_info || 0 == socket_info->_state) {
         return -1;
     }
-    // 可写时关闭EPOLLOUT.设置非租塞状态
-    if ((EPOLLOUT & events) && m_epoll != NULL) {
+    // 可写时关闭POLLOUT.设置非租塞状态
+    if ((POLLOUT & events) && m_poll != NULL) {
         socket_info->_state &= (~IN_BLOCKED);
-        m_epoll->ModFd(socket_info->_socket_fd, EPOLLIN | EPOLLERR, net_addr);
+        m_poll->ModFd(socket_info->_socket_fd, POLLIN | POLLERR, net_addr);
     }
-    if (EPOLLERR & events) {
+    if (POLLERR & events) {
         DBG("close handle %lu", net_addr);
         RawClose(socket_info);
         if (socket_info->_state == (CONNECT_ADDR | TCP_PROTOCOL)) {

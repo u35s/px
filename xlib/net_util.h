@@ -19,7 +19,7 @@ namespace xlib {
 
 typedef uint64_t NetAddr;
 static const NetAddr INVAILD_NETADDR = UINT64_MAX;
-class NetIO;
+class Poll;
 
 static const uint8_t TCP_PROTOCOL = 0x80;
 static const uint8_t UDP_PROTOCOL = 0x40;
@@ -47,47 +47,12 @@ struct SocketInfo {
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class Epoll {
-    friend class NetIO;
- public:
-    Epoll();
-    ~Epoll();
-
-    int32_t Init(uint32_t max_event);
-
-    int32_t Wait(int32_t timeout_ms);
-
-    int32_t AddFd(int32_t fd, uint32_t events, uint64_t data);
-
-    int32_t DelFd(int32_t fd);
-
-    int32_t ModFd(int32_t fd, uint32_t events, uint64_t data);
-
-    int32_t GetEvent(uint32_t *events, uint64_t *data);
-
-    const char* GetLastError() const {
-        return m_last_error;
-    }
-
- private:
-    char    m_last_error[256];
-    int32_t m_epoll_fd;
-    int32_t m_max_event;
-    int32_t m_event_num;
-    struct epoll_event* m_events;
-    NetIO*  m_bind_net_io;
-};
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-
 class NetIO {
-    friend Epoll;
-
  public:
     NetIO();
     ~NetIO();
 
-    int32_t Init(Epoll* epoll);
+    int32_t Init(Poll* poll);
 
     NetAddr Listen(const std::string& ip, uint16_t port);
 
@@ -120,10 +85,6 @@ class NetIO {
 
     NetAddr GetLocalListenAddr(NetAddr dst_addr);
 
-    const char* GetLastError() const {
-        return m_last_error;
-    }
-
     static bool NON_BLOCK;
     static bool ADDR_REUSE;
     static bool KEEP_ALIVE;
@@ -133,6 +94,8 @@ class NetIO {
     static int32_t LISTEN_BACKLOG;
     static uint32_t MAX_SOCKET_NUM;
     static uint8_t AUTO_RECONNECT;
+
+    int32_t OnEvent(NetAddr net_addr, uint32_t events);
 
  private:
     NetAddr AllocNetAddr();
@@ -144,7 +107,6 @@ class NetIO {
     int32_t InitSocketInfo(const std::string& ip,
         uint16_t port, SocketInfo* socket_info);
 
-    int32_t OnEvent(NetAddr net_addr, uint32_t events);
 
     int32_t RawListen(NetAddr net_addr, SocketInfo* socket_info);
 
@@ -152,11 +114,9 @@ class NetIO {
 
     int32_t RawClose(SocketInfo* socket_info);
 
-    char            m_last_error[256];
-
-    NetAddr         m_used_id;
-    Epoll*          m_epoll;
-    SocketInfo*      m_sockets;
+    NetAddr             m_used_id;
+    Poll*               m_poll;
+    SocketInfo*         m_sockets;
     std::list<NetAddr>  m_free_sockets;
 };
 
