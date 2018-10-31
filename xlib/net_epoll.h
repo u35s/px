@@ -1,7 +1,6 @@
 /*
  * Copyright [2018] <Copyright u35s>
  */
-#ifdef __linux__
 
 #ifndef XLIB_NET_EPOLL_H_
 #define XLIB_NET_EPOLL_H_
@@ -42,5 +41,3 @@ class Epoll : public Poll {
 }  // namespace xlib
 
 #endif  // XLIB_NET_EPOLL_H_
-
-#endif
