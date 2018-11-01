@@ -2,6 +2,7 @@
  * Copyright [2018] <Copyright u35s>
  */
 
+#include <stdio.h>
 #include <unistd.h>
 #include <string>
 
