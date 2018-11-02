@@ -10,8 +10,9 @@ px能让你自定义规则,以实现国内国外智能上网.
 
 # 安装
 ```shell
-yum install gcc-c++
-git clone https://github.com/u35s/px.git && cd px && make 
+yum install gcc-c++ cmake
+git clone https://github.com/u35s/px.git
+mkdir build && cd build && cmake && make 
 ```
 # 使用
 
