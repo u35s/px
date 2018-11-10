@@ -11,6 +11,8 @@
 #include "xlib/net_util.h"
 #include "xlib/xlib.h"
 
+#define MAX_QUEUE_SIZE 10
+
 class ProxyClient{
  public:
     ProxyClient(uint64_t handle, xlib::NetIO* netio);
@@ -32,6 +34,10 @@ class ProxyClient{
     std::stringbuf parsed_buf_;
 
     std::string m_remote_host;
+    char m_read_buffer[1<<12];
+
+    bool m_reading_wait;
+    bool m_peer_reading_wait;
 
     uint64_t m_handle;
     uint64_t m_peer_handle;

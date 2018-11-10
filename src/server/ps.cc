@@ -2,6 +2,7 @@
  * Copyright [2018] <Copyright u35s>
  */
 
+#include <stdlib.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <unistd.h>
@@ -22,12 +23,18 @@
     #include "xlib/net_kqueue.h"
 #endif
 
-static struct {
-    int32_t _stop;
-} g_app_events = { 0 };
-
 void on_stop(int32_t signal) {
     g_app_events._stop = signal;
+}
+
+void on_log_level(int signal) {
+    if (signal == SIGUSR1) {
+        g_app_events._log_level = xlib::LOG_PRIORITY_INFO;
+    } else if (signal == SIGUSR2) {
+        g_app_events._log_level = xlib::LOG_PRIORITY_TRACE;
+    }
+    xlib::Log::Instance().SetLogPriority(g_app_events._log_level);
+    INF("set log level %d", g_app_events._log_level);
 }
 
 ProxyServer::ProxyServer()
@@ -35,8 +42,8 @@ ProxyServer::ProxyServer()
 }
 
 ProxyServer::~ProxyServer() {
-    delete m_poll;
-    delete m_netio;
+    // delete m_poll;
+    // delete m_netio;
 }
 
 void ProxyServer::Init(uint32_t port) {
@@ -51,10 +58,15 @@ void ProxyServer::Init(uint32_t port) {
 #endif
     m_poll->Init(1024);
     m_netio->Init(m_poll);
-    m_netio->Listen("tcp://0.0.0.0", m_port);
+    auto netaddr = m_netio->Listen("tcp://0.0.0.0", m_port);
+    if (xlib::INVAILD_NETADDR == netaddr) {
+        exit(0);
+    }
     signal(SIGPIPE, SIG_IGN);
     signal(SIGHUP, on_stop);
     signal(SIGINT, on_stop);
+    signal(SIGUSR1, on_log_level);
+    signal(SIGUSR2, on_log_level);
     setbuf(stdout, NULL);
 }
 
@@ -115,32 +127,30 @@ void ProxyServer::RecvData(uint64_t handle) {
 }
 
 uint64_t ProxyServer::Update() {
-    uint64_t num = 0;
-    for (uint32_t i = 0; i < 100; i++) {
+    int32_t num = m_poll->Wait(0);
+    if (num <= 0) {
+       return 0;
+    }
+
+    while (true) {
        if (ProcessMessage() <= 0) {
            break;
        }
-       num++;
     }
     if (num > 0) {
-        // TRACE("process message %lu", num);
+        TRACE("process message %d", num);
     }
     return num;
 }
 
 uint64_t ProxyServer::ProcessMessage() {
-    int32_t ret = m_poll->Wait(0);
-    if (ret <= 0) {
-       return 0;
-    }
-
     uint32_t events  = 0;
     uint64_t netaddr = 0;
-    ret = m_poll->GetEvent(&events, &netaddr);
-    TRACE("process message, events:%u, netaddr:%lu, ret:%d", events, netaddr, ret);
+    int32_t ret = m_poll->GetEvent(&events, &netaddr);
     if (ret != 0) {
         return 0;
     }
+    TRACE("process message, events:%u, netaddr:%lu, ret:%d", events, netaddr, ret);
     if (events & POLLERR) {
         RemoveClient(netaddr);
     }
@@ -185,11 +195,12 @@ void ProxyServer::Serve() {
         uint64_t start = xlib::Time::Micro();
         num = Update();
         uint64_t end = xlib::Time::Micro();
-
-        if (num <= 0) {
-            Idle();
-        } else {
-            TRACE("update process %lu msg, run %lu microseond", num, end-start);
+        uint64_t elapsed = end - start;
+        if (elapsed < 1000) {
+            usleep(1000 - elapsed);
+        }
+        if (elapsed > 300) {
+            INF("update process %lu msg, run %lu microseond", num, elapsed);
         }
     } while (true);
 }

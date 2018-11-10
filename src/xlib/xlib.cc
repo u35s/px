@@ -100,6 +100,12 @@ void GetStackTrace(std::string* stack) {
     }
 }
 
+void TraceStack() {
+    std::string stack;
+    GetStackTrace(&stack);
+    TRACE("%s", stack.c_str());
+}
+
 void PrintStack() {
     std::string stack;
     GetStackTrace(&stack);

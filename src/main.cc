@@ -15,8 +15,6 @@ char  conf_domain[255];
 char  conf_port[5];
 bool  conf_forward = false;
 
-xlib::LOG_PRIORITY log_level = xlib::LOG_PRIORITY_INFO;
-
 ProxyServer ps;
 
 int main(int argc, char **argv) {
@@ -25,7 +23,7 @@ int main(int argc, char **argv) {
     while ( -1 != (opt = getopt(argc, argv, "l:p:h:")) ) {
         switch (opt) {
             case 'l':
-                log_level = xlib::LOG_PRIORITY(xlib::Atoi(optarg));
+                g_app_events._log_level = xlib::LOG_PRIORITY(xlib::Atoi(optarg));
                 break;
             case 'p':
                 port = xlib::Atoi(optarg);
@@ -42,9 +40,9 @@ int main(int argc, char **argv) {
                 break;
         }
     }
-    xlib::Log::Instance().SetLogPriority(log_level);
+    xlib::Log::Instance().SetLogPriority(g_app_events._log_level);
     INF("log level %d,local port %d, host %s:%s",
-        log_level, port, conf_domain, conf_port);
+        g_app_events._log_level, port, conf_domain, conf_port);
     ps.Init(port);
     ps.Serve();
     return 0;

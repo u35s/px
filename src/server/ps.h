@@ -8,7 +8,13 @@
 #include <memory>
 #include <unordered_map>
 #include "xlib/net_util.h"
+#include "xlib/log.h"
 #include "server/pc.h"
+
+static struct {
+    int32_t _stop;
+    xlib::LOG_PRIORITY _log_level;
+} g_app_events = { 0, xlib::LOG_PRIORITY_INFO };
 
 class ProxyServer{
  public:

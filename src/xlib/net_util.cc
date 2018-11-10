@@ -22,6 +22,7 @@
 #include "xlib/net_util.h"
 #include "xlib/net_poll.h"
 #include "xlib/log.h"
+#include "xlib/xlib.h"
 
 namespace xlib {
 
@@ -475,7 +476,7 @@ int32_t NetIO::RawClose(SocketInfo* socket_info) {
     return ret;
 }
 
-// 水平触发(level trigger)和边缘触发(edge trigger),选用边缘触发
+// 水平触发(level trigger)和边缘触发(edge trigger)
 // 水平触发只要有数据就触发
 // 边缘触发
 int32_t NetIO::OnEvent(NetAddr net_addr, uint32_t events) {

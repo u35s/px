@@ -20,6 +20,8 @@ int GetIpByDomain(const char *domain, char *ip);
 
 void PrintStack();
 
+void TraceStack();
+
 class Buffer {
  public:
     Buffer(const char *bytes, int len);
