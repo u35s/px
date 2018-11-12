@@ -10,18 +10,26 @@
 #include "xlib/net_util.h"
 #include "xlib/log.h"
 #include "server/pc.h"
+#include "server/options.h"
 
 static struct {
     int32_t _stop;
     xlib::LOG_PRIORITY _log_level;
 } g_app_events = { 0, xlib::LOG_PRIORITY_INFO };
 
-class ProxyServer{
- public:
+class ProxyServer {
+ protected:
     ProxyServer();
+
+ public:
+    static ProxyServer& Instance() {
+        static ProxyServer s_ps_instance;
+        return s_ps_instance;
+    }
     ~ProxyServer();
 
-    void Init(uint32_t port);
+    Options* GetOptions();
+    void Init(Options* options);
     void NewClient(uint64_t handle);
     void AddPeerClient(uint64_t handle, uint64_t peer_handle);
     void RemoveClient(uint64_t handle);
@@ -35,8 +43,9 @@ class ProxyServer{
     uint64_t ProcessMessage();
 
     xlib::NetIO* m_netio;
+
  private:
-    uint32_t m_port;
+    Options*  m_options;
     xlib::Poll* m_poll;
     std::unordered_map<uint64_t, std::shared_ptr<ProxyClient> > m_client_map;
 };

@@ -10,15 +10,10 @@
 #include "xlib/log.h"
 
 #include "server/ps.h"
-
-char  conf_domain[255];
-char  conf_port[5];
-bool  conf_forward = false;
-
-ProxyServer ps;
+#include "server/options.h"
 
 int main(int argc, char **argv) {
-    int port = 1080;
+    Options options;
     int opt  = 0;
     while ( -1 != (opt = getopt(argc, argv, "l:p:h:")) ) {
         switch (opt) {
@@ -26,24 +21,25 @@ int main(int argc, char **argv) {
                 g_app_events._log_level = xlib::LOG_PRIORITY(xlib::Atoi(optarg));
                 break;
             case 'p':
-                port = xlib::Atoi(optarg);
+                options.listen_port = xlib::Atoi(optarg);
                 break;
             case 'h':
                 std::string host(optarg);
                 std::vector<std::string> vec;
                 xlib::Split(host, ":", &vec);
                 if (vec.size() == 2) {
-                    conf_forward = true;
-                    snprintf(conf_domain, sizeof(conf_domain), "%s", vec[0].c_str());
-                    snprintf(conf_port, sizeof(conf_port), "%s", vec[1].c_str());
+                    options.forward = true;
+                    snprintf(options.forward_domain, sizeof(options.forward_domain), "%s", vec[0].c_str());
+                    snprintf(options.forward_port, sizeof(options.forward_port), "%s", vec[1].c_str());
                 }
                 break;
         }
     }
     xlib::Log::Instance().SetLogPriority(g_app_events._log_level);
     INF("log level %d,local port %d, host %s:%s",
-        g_app_events._log_level, port, conf_domain, conf_port);
-    ps.Init(port);
-    ps.Serve();
+        g_app_events._log_level, options.listen_port, options.forward_domain, options.forward_port);
+
+    ProxyServer::Instance().Init(&options);
+    ProxyServer::Instance().Serve();;
     return 0;
 }

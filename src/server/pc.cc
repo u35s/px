@@ -138,15 +138,13 @@ int ProxyClient::ParseRequest() {
         proto = "http";
     }
 
-    extern char conf_domain[];
-    extern char conf_port[];
-    extern bool conf_forward;
     m_remote_host = std::string(host + ":" + port);
     char ip[16];
     std::string used_host = host, used_port = port;
-    if (conf_forward) {
-        used_host = std::string(conf_domain);
-        used_port = std::string(conf_port);
+    auto options = ProxyServer::Instance().GetOptions();
+    if (options->forward) {
+        used_host = std::string(options->forward_domain);
+        used_port = std::string(options->forward_port);
     }
     if (xlib::GetIpByDomain(used_host.c_str(), ip) < 0) {
         return -1;
@@ -156,7 +154,7 @@ int ProxyClient::ParseRequest() {
     first_buf_.sputn(bt, 1);
     parsed_buf_.sputn(bt, 1);
     if ( proto == "https" ) {
-        if (conf_forward) {
+        if (options->forward) {
             remote_write_queue_.push_back(new xlib::Buffer(first_buf_.str().c_str(), first_buf_.str().size()));
             remote_write_queue_.push_back(new xlib::Buffer(parsed_buf_.str().c_str(), parsed_buf_.str().size()));
         } else {
@@ -173,8 +171,7 @@ int ProxyClient::ParseRequest() {
         return -1;
     }
     DBG("connect ok, peer handle, %lu", m_peer_handle);
-    extern ProxyServer ps;
-    ps.AddPeerClient(m_handle, m_peer_handle);
+    ProxyServer::Instance().AddPeerClient(m_handle, m_peer_handle);
     parsed_ = true;
     int length = 0;
 #if defined(__linux__)

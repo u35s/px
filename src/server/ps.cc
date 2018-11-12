@@ -38,7 +38,7 @@ void on_log_level(int signal) {
 }
 
 ProxyServer::ProxyServer()
-    : m_netio(NULL), m_port(0), m_poll(NULL) {
+    : m_netio(NULL), m_options(NULL), m_poll(NULL) {
 }
 
 ProxyServer::~ProxyServer() {
@@ -46,8 +46,12 @@ ProxyServer::~ProxyServer() {
     // delete m_netio;
 }
 
-void ProxyServer::Init(uint32_t port) {
-    m_port  = port;
+Options* ProxyServer::GetOptions() {
+    return m_options;
+}
+
+void ProxyServer::Init(Options* options) {
+    m_options  = options;
     m_netio = new xlib::NetIO();
 #if defined(__linux__)
     m_poll  = new xlib::Epoll();
@@ -58,7 +62,7 @@ void ProxyServer::Init(uint32_t port) {
 #endif
     m_poll->Init(1024);
     m_netio->Init(m_poll);
-    auto netaddr = m_netio->Listen("tcp://0.0.0.0", m_port);
+    auto netaddr = m_netio->Listen("tcp://0.0.0.0", m_options->listen_port);
     if (xlib::INVAILD_NETADDR == netaddr) {
         exit(0);
     }
