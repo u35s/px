@@ -20,7 +20,7 @@ class Time {
     static Time Now();
     static uint64_t Micro();
  private:
-    uint64_t m_second;
+    uint64_t m_microsecond;
 };
 
 }  // namespace xlib

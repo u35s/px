@@ -10,32 +10,33 @@
 
 namespace xlib {
 
-Time::Time() : m_second(0) {}
+Time::Time() : m_microsecond(0) {}
 
-Time::Time(uint64_t second) : m_second(second) {}
+Time::Time(uint64_t micro) : m_microsecond(micro) {}
 
 Time::~Time() {}
 
 Time Time::Now() {
-    time_t sec = time(NULL);
-    return Time(uint64_t(sec));
+    return Time(Micro());
 }
 
 std::string Time::String() {
-    time_t now = m_second;
+    time_t now = m_microsecond / 1000000;
+    uint64_t micro = m_microsecond % 1000000;
     struct tm tm_now;
     struct tm* p_tm_now;
 
     p_tm_now = localtime_r(&now, &tm_now);
 
     char buff[256] = {0};
-    snprintf(buff, sizeof(buff), "%04d-%02d-%02d% 02d:%02d:%02d",
+    snprintf(buff, sizeof(buff), "%04d-%02d-%02d% 02d:%02d:%02d:%06lu",
         1900 + p_tm_now->tm_year,
         p_tm_now->tm_mon + 1,
         p_tm_now->tm_mday,
         p_tm_now->tm_hour,
         p_tm_now->tm_min,
-        p_tm_now->tm_sec);
+        p_tm_now->tm_sec,
+        micro);
 
     return std::string(buff);
 }
