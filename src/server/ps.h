@@ -42,9 +42,8 @@ class ProxyServer {
     uint64_t Stop();
     uint64_t ProcessMessage();
 
-    xlib::NetIO* m_netio;
-
  private:
+    xlib::NetIO* m_netio;
     Options*  m_options;
     xlib::Poll* m_poll;
     std::unordered_map<uint64_t, std::shared_ptr<ProxyClient> > m_client_map;
