@@ -142,6 +142,7 @@ int ProxyClient::ParseRequest() {
     char ip[16];
     std::string used_host = host, used_port = port;
     auto options = ProxyServer::Instance().GetOptions();
+    // options = NULL; // auto 指针常量失效
     if (options->forward) {
         used_host = std::string(options->forward_domain);
         used_port = std::string(options->forward_port);

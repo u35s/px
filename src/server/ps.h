@@ -28,7 +28,7 @@ class ProxyServer {
     }
     ~ProxyServer();
 
-    Options* GetOptions();
+    const Options *const GetOptions();
     void Init(Options* options);
     void NewClient(uint64_t handle);
     void AddPeerClient(uint64_t handle, uint64_t peer_handle);

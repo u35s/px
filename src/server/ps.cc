@@ -46,7 +46,11 @@ ProxyServer::~ProxyServer() {
     // delete m_netio;
 }
 
-Options* ProxyServer::GetOptions() {
+// T const * | const T *  常量指针 不能通过指针变量直接更改指针指向的值
+// T * const              指针常量 指针变量不允许修改
+// T const * const
+
+const Options *const ProxyServer::GetOptions() {
     return m_options;
 }
 
