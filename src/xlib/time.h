@@ -7,18 +7,24 @@
 
 #include <string>
 
+#define DURATION_PER_SEC 1000000
+
 namespace xlib {
 
 class Time {
  public:
     Time();
-    explicit Time(uint64_t second);
-    std::string String();
-    uint64_t Unix();
     ~Time();
 
+    explicit Time(uint64_t second);  // 构造函数单个参数声明explicit
+    uint64_t Elapse();
+    uint64_t Micro();
+    uint64_t Unix();
+    uint64_t Reset();
+
+    std::string String();
+
     static Time Now();
-    static uint64_t Micro();
  private:
     uint64_t m_microsecond;
 };

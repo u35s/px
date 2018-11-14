@@ -192,6 +192,7 @@ void ProxyServer::Idle() {
 
 void ProxyServer::Serve() {
     uint64_t num = 0;
+    xlib::Time timer = xlib::Time();
     do {
          if (g_app_events._stop) {
             if (Stop() == 0) {
@@ -199,11 +200,9 @@ void ProxyServer::Serve() {
                 break;
             }
         }
-
-        uint64_t start = xlib::Time::Micro();
+        timer.Reset();
         num = Update();
-        uint64_t end = xlib::Time::Micro();
-        uint64_t elapsed = end - start;
+        uint64_t elapsed = timer.Elapse();
         if (elapsed < 1000) {
             usleep(1000 - elapsed);
         }
