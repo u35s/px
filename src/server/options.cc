@@ -35,7 +35,7 @@ void Options::Init(int argc, char **argv) {
                 break;
             }
             case 'f':
-                snprintf(log_file, sizeof(log_file), optarg);
+                snprintf(log_file, sizeof(log_file), "%s", optarg);
                 break;
         }
     }

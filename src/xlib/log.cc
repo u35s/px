@@ -38,6 +38,7 @@ int  Log::SetLogFile(char* file) {
     } else {
         m_log_fd = fd;
     }
+    return 0;
 }
 
 void Log::SetLogPriority(LOG_PRIORITY pri) {

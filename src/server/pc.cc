@@ -188,7 +188,7 @@ int ProxyClient::Read() {
     int length = 0;
     int read_num = 0;
     while (remote_write_queue_.size() < MAX_QUEUE_SIZE) {
-        int nread = m_netio->Recv(m_handle, m_read_buffer, sizeof(m_read_buffer-1));
+        int nread = m_netio->Recv(m_handle, m_read_buffer, sizeof(m_read_buffer)-1);
         if (nread == 0) {
             m_reading_wait = false;
             break;
