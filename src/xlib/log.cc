@@ -2,7 +2,11 @@
  * Copyright [2018] <Copyright u35s>
  */
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <stdarg.h>
+#include <unistd.h>
 #include "xlib/log.h"
 
 namespace xlib {
@@ -11,11 +15,29 @@ namespace xlib {
 
 static const char*  g_priority_str[] = { "TRACE", "DEBUG", "INFO", "ERROR", "FATAL" };
 
-Log::Log() {
-    m_log_priority = LOG_PRIORITY_INFO;
+Log::Log() : m_log_priority(LOG_PRIORITY_INFO), m_log_fd(-1) {
 }
 
 Log::~Log() {
+    Close();
+}
+
+void Log::Close() {
+    if (m_log_fd > -1) {
+        close(m_log_fd);
+        m_log_fd = -1;
+    }
+}
+
+int  Log::SetLogFile(char* file) {
+    Close();
+    m_log_file = file;
+    int fd = open(m_log_file, O_CREAT | O_APPEND | O_RDWR);
+    if (fd < 0) {
+        ERR("set log file, open faild");
+    } else {
+        m_log_fd = fd;
+    }
 }
 
 void Log::SetLogPriority(LOG_PRIORITY pri) {
@@ -44,9 +66,13 @@ void Log::Write(LOG_PRIORITY pri, const char* fmt, ...) {
     if (tail > (ARRAYSIZE(buff) - 2)) {
         tail = ARRAYSIZE(buff) - 2;
     }
-    buff[tail++] = '\n';
     buff[tail] = '\0';
-    fprintf(stdout, "%s", buff);
+    buff[++tail] = '\n';
+    if (m_log_fd > -1) {
+        write(m_log_fd, buff, ++tail);
+    } else {
+        fprintf(stdout, "%s", buff);
+    }
 }
 
 }  // namespace xlib

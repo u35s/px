@@ -35,10 +35,13 @@ class Log {
     }
 
     void Write(LOG_PRIORITY pri, const char* fmt, ...);
-
     void SetLogPriority(LOG_PRIORITY pri);
+    int  SetLogFile(char* file);
+    void Close();
  private:
     LOG_PRIORITY m_log_priority;
+    int m_log_fd;
+    char* m_log_file;
 };
 
 }  // namespace xlib

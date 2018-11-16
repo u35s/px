@@ -15,6 +15,9 @@ struct Options {
     char  forward_port[5];
     bool  forward;
     uint32_t listen_port;
+
+    bool  daemon;
+    char  log_file[255];
 };
 
 #endif  // SERVER_OPTIONS_H_
