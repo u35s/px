@@ -28,13 +28,12 @@ void on_stop(int32_t signal) {
 }
 
 void on_log_level(int signal) {
-    if (signal == SIGUSR1) {
-        g_app_events._log_level = xlib::LOG_PRIORITY_INFO;
-    } else if (signal == SIGUSR2) {
-        g_app_events._log_level = xlib::LOG_PRIORITY_TRACE;
+    auto log_level = xlib::LOG_PRIORITY_INFO;
+    if (signal == SIGUSR2) {
+        log_level = xlib::LOG_PRIORITY_TRACE;
     }
-    xlib::Log::Instance().SetLogPriority(g_app_events._log_level);
-    INF("set log level %d", g_app_events._log_level);
+    xlib::Log::Instance().SetLogPriority(log_level);
+    INF("set log level %d", log_level);
 }
 
 ProxyServer::ProxyServer()

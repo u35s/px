@@ -11,6 +11,8 @@ struct Options {
     Options() {
         memset(this, 0, sizeof(Options));
     }
+    void Init(int argc, char **argv);
+
     char  forward_domain[255];
     char  forward_port[5];
     bool  forward;
@@ -18,6 +20,8 @@ struct Options {
 
     bool  daemon;
     char  log_file[255];
+
+    uint32_t log_level;
 };
 
 #endif  // SERVER_OPTIONS_H_

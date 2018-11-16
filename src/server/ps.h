@@ -14,8 +14,7 @@
 
 static struct {
     int32_t _stop;
-    xlib::LOG_PRIORITY _log_level;
-} g_app_events = { 0, xlib::LOG_PRIORITY_INFO };
+} g_app_events = { 0 };
 
 class ProxyServer {
  protected:
@@ -44,6 +43,7 @@ class ProxyServer {
 
  private:
     xlib::NetIO* m_netio;
+    // 没用引用是因为构造函数中还没有options变量
     Options*  m_options;
     xlib::Poll* m_poll;
     std::unordered_map<uint64_t, std::shared_ptr<ProxyClient> > m_client_map;
