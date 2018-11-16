@@ -25,5 +25,8 @@ mkdir build && cd build && cmake ../px  && make
 
 " 改变日志等级
 ./px -p 8888 -l 0
+
+" 守护进程 -f 指定日志文件,不指定不输出日志
+./px -d -f /tmp/px.log
 ```
 
