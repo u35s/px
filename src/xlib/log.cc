@@ -66,10 +66,10 @@ void Log::Write(LOG_PRIORITY pri, const char* fmt, ...) {
     if (tail > (ARRAYSIZE(buff) - 2)) {
         tail = ARRAYSIZE(buff) - 2;
     }
+    buff[tail++] = '\n';
     buff[tail] = '\0';
-    buff[++tail] = '\n';
     if (m_log_fd > -1) {
-        write(m_log_fd, buff, ++tail);
+        write(m_log_fd, buff, tail);
     } else {
         fprintf(stdout, "%s", buff);
     }
