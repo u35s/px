@@ -18,7 +18,9 @@ int main(int argc, char **argv) {
     if (options.log_file[0] != '\0') {
         xlib::Log::Instance().SetLogFile(options.log_file);
     }
-    xlib::Log::Instance().SetLogPriority(xlib::LOG_PRIORITY(options.log_level));
+    if (options.log_level != 0) {
+        xlib::Log::Instance().SetLogPriority(xlib::LOG_PRIORITY(options.log_level));
+    }
     INF("log level %d,local port %d, host %s:%s",
         options.log_level, options.listen_port, options.forward_domain, options.forward_port);
 

@@ -16,7 +16,8 @@ namespace xlib {
 #define FATAL(fmt, ...) xlib::Log::Instance().Write(xlib::LOG_PRIORITY_FATAL, fmt, ##__VA_ARGS__);
 
 typedef enum {
-    LOG_PRIORITY_TRACE = 0,
+    LOG_PRIORITY_NULL = 0,
+    LOG_PRIORITY_TRACE,
     LOG_PRIORITY_DEBUG,
     LOG_PRIORITY_INFO,
     LOG_PRIORITY_ERROR,
