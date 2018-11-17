@@ -4,6 +4,7 @@
 
 #include "xlib/log.h"
 #include "xlib/daemon.h"
+#include "xlib/platform.h"
 
 #include "server/ps.h"
 #include "server/options.h"

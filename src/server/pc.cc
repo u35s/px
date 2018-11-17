@@ -7,6 +7,7 @@
 #include <sstream>
 #include <vector>
 #include "xlib/string.h"
+#include "xlib/conv.h"
 #include "xlib/log.h"
 #include "server/ps.h"
 #include "server/pc.h"
@@ -20,7 +21,7 @@ ProxyClient::ProxyClient(const uint64_t handle, xlib::NetIO* netio)
 }
 
 ProxyClient::~ProxyClient() {
-    auto socket_info = m_netio->GetSocketInfo(m_handle);
+    const xlib::SocketInfo* socket_info = m_netio->GetSocketInfo(m_handle);
 
     INF("client ip " NETADDR_IP_PRINT_FMT ", remote host %s, recv %d, send %d,",
         NETADDR_IP_PRINT_CTX(socket_info), m_remote_host.c_str(),
@@ -128,7 +129,7 @@ int ProxyClient::ParseRequest() {
     m_remote_host = std::string(host + ":" + port);
     char ip[16];
     std::string used_host = host, used_port = port;
-    auto options = ProxyServer::Instance().GetOptions();
+    const Options* options = ProxyServer::Instance().GetOptions();
     // options = NULL; // auto 指针常量失效
     if (options->forward) {
         used_host = std::string(options->forward_domain);
@@ -154,7 +155,7 @@ int ProxyClient::ParseRequest() {
        m_buffer->Write(parsed_buf_.str().c_str());
     }
     DBG("start connect %s,%s", host.c_str(), used_port.c_str());
-    m_peer_handle = m_netio->ConnectPeer(ip, std::stoi(used_port));
+    m_peer_handle = m_netio->ConnectPeer(ip, xlib::Atoi(used_port.c_str()));
     if (m_peer_handle <= 0) {
         return -1;
     }

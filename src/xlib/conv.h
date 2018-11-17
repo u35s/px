@@ -7,7 +7,7 @@
 
 namespace xlib {
 
-int Atoi(char* a);
+int Atoi(const char* a);
 
 }  // namespace xlib
 

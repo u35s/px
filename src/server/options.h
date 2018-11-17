@@ -6,6 +6,7 @@
 #define SERVER_OPTIONS_H_
 
 #include <memory.h>
+#include <stdint.h>
 
 struct Options {
     Options() {

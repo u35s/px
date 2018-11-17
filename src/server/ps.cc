@@ -28,7 +28,7 @@ void on_stop(int32_t signal) {
 }
 
 void on_log_level(int signal) {
-    auto log_level = xlib::LOG_PRIORITY_INFO;
+    xlib::LOG_PRIORITY log_level = xlib::LOG_PRIORITY_INFO;
     if (signal == SIGUSR2) {
         log_level = xlib::LOG_PRIORITY_TRACE;
     }
@@ -65,7 +65,7 @@ void ProxyServer::Init(Options* options) {
 #endif
     m_poll->Init(1024);
     m_netio->Init(m_poll);
-    auto netaddr = m_netio->Listen("tcp://0.0.0.0", m_options->listen_port);
+    uint64_t netaddr = m_netio->Listen("tcp://0.0.0.0", m_options->listen_port);
     if (xlib::INVAILD_NETADDR == netaddr) {
         exit(0);
     }
@@ -78,13 +78,13 @@ void ProxyServer::Init(Options* options) {
 }
 
 void ProxyServer::NewClient(uint64_t handle) {
-    std::shared_ptr<ProxyClient> client(new ProxyClient(handle, m_netio));
+    cxx::shared_ptr<ProxyClient> client(new ProxyClient(handle, m_netio));
     m_client_map[handle] = client;
     client->Update(true, handle);
 }
 
 void ProxyServer::AddPeerClient(uint64_t handle, uint64_t peer_handle) {
-    std::unordered_map<uint64_t, std::shared_ptr<ProxyClient>>::iterator it =
+    cxx::unordered_map<uint64_t, cxx::shared_ptr<ProxyClient> >::iterator it =
         m_client_map.find(handle);
     if (it == m_client_map.end()) {
         DBG("%lu add peer client no handle, %lu", handle, peer_handle);
@@ -95,7 +95,7 @@ void ProxyServer::AddPeerClient(uint64_t handle, uint64_t peer_handle) {
 }
 
 void ProxyServer::RemoveClient(uint64_t handle) {
-    std::unordered_map<uint64_t, std::shared_ptr<ProxyClient>>::iterator it =
+    cxx::unordered_map<uint64_t, cxx::shared_ptr<ProxyClient> >::iterator it =
         m_client_map.find(handle);
     if (it == m_client_map.end()) {
         return;
@@ -110,7 +110,7 @@ void ProxyServer::RemoveClient(uint64_t handle) {
 }
 
 void ProxyServer::SendData(uint64_t handle) {
-    std::unordered_map<uint64_t, std::shared_ptr<ProxyClient>>::iterator it =
+    cxx::unordered_map<uint64_t, cxx::shared_ptr<ProxyClient> >::iterator it =
         m_client_map.find(handle);
     if (it == m_client_map.end()) {
         DBG("send data no handle, %lu", handle);
@@ -122,7 +122,7 @@ void ProxyServer::SendData(uint64_t handle) {
 }
 
 void ProxyServer::RecvData(uint64_t handle) {
-    std::unordered_map<uint64_t, std::shared_ptr<ProxyClient>>::iterator it =
+    cxx::unordered_map<uint64_t, cxx::shared_ptr<ProxyClient> >::iterator it =
         m_client_map.find(handle);
     if (it == m_client_map.end()) {
         DBG("recv data no handle, %lu", handle);

@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 2.6)
 
 project(px)
 
-add_definitions(-std=c++11)
-
 include_directories(src)
 
 aux_source_directory(src DIR_SRCS)

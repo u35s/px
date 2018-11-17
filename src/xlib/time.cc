@@ -4,6 +4,7 @@
 
 #include <sys/time.h>
 #include <time.h>
+#include <stdio.h>
 #include <string>
 
 #include "xlib/time.h"

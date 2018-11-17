@@ -5,6 +5,7 @@
 #ifndef XLIB_TIME_H_
 #define XLIB_TIME_H_
 
+#include <stdint.h>
 #include <string>
 
 #define DURATION_PER_SEC 1000000

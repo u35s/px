@@ -8,6 +8,6 @@
 
 namespace xlib {
 
-int Atoi(char* a) { return std::atoi(a); }
+int Atoi(const char* a) { return std::atoi(a); }
 
 }  // namespace xlib
