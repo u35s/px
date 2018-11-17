@@ -11,6 +11,10 @@
 
 namespace xlib {
 
+int GetIpByDomain(const char *domain, char *ip);
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #define NETADDR_IP_PRINT_FMT   "%u.%u.%u.%u:%u"
 #define NETADDR_IP_PRINT_CTX(socket_info) \
     (socket_info->_ip & 0xFFU), ((socket_info->_ip >> 8) & 0xFFU), \

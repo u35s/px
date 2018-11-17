@@ -2,6 +2,7 @@
  * Copyright [2018] <Copyright u35s>
  */
 
+#include <netdb.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <stdio.h>
@@ -22,9 +23,29 @@
 #include "xlib/net_util.h"
 #include "xlib/net_poll.h"
 #include "xlib/log.h"
-#include "xlib/xlib.h"
 
 namespace xlib {
+
+int GetIpByDomain(const char *domain, char *ip) {
+    char **pptr;
+    struct hostent *hptr;
+
+    hptr = gethostbyname(domain);
+    if (NULL == hptr) {
+        hptr = gethostbyname(domain);
+        if (NULL == hptr) {
+            return -1;
+        }
+    }
+    for (pptr = hptr->h_addr_list ; *pptr != NULL; pptr++) {
+        if (NULL != inet_ntop(hptr->h_addrtype, *pptr, ip, 16)) {
+            return 0;  // 只获取第一个 ip
+        }
+    }
+    return -1;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void SocketInfo::Reset() {
     _socket_fd = -1;

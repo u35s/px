@@ -9,7 +9,7 @@
 #include <sstream>
 #include <string>
 #include "xlib/net_util.h"
-#include "xlib/xlib.h"
+#include "xlib/buffer.h"
 
 #define MAX_QUEUE_SIZE 10
 
@@ -27,14 +27,10 @@ class ProxyClient{
     int PeerRead();
     int ParseRequest();
 
-    std::list<xlib::Buffer*>     client_write_queue_;
-    std::list<xlib::Buffer*>     remote_write_queue_;
-    std::string err_;
-    std::stringbuf first_buf_;
-    std::stringbuf parsed_buf_;
+    xlib::Buffer* m_buffer;
+    xlib::Buffer* m_peer_buffer;
 
     std::string m_remote_host;
-    char m_read_buffer[1<<12];
 
     bool m_reading_wait;
     bool m_peer_reading_wait;
@@ -47,6 +43,9 @@ class ProxyClient{
 
     bool first_line_read_;
     bool parsed_;
+
+    std::stringbuf first_buf_;
+    std::stringbuf parsed_buf_;
 
     xlib::NetIO* m_netio;
 };

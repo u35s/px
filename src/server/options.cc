@@ -8,7 +8,8 @@
 #include <vector>
 
 #include "server/options.h"
-#include "xlib/xlib.h"
+#include "xlib/string.h"
+#include "xlib/conv.h"
 
 void Options::Init(int argc, char **argv) {
     int opt  = 0;

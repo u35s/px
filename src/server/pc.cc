@@ -6,13 +6,14 @@
 #include <errno.h>
 #include <sstream>
 #include <vector>
-#include "xlib/xlib.h"
+#include "xlib/string.h"
 #include "xlib/log.h"
 #include "server/ps.h"
 #include "server/pc.h"
 
 ProxyClient::ProxyClient(const uint64_t handle, xlib::NetIO* netio)
-    : m_reading_wait(false), m_peer_reading_wait(false),
+    : m_buffer(new xlib::Buffer(1<<12)), m_peer_buffer(new xlib::Buffer(1<<12)),
+      m_reading_wait(false), m_peer_reading_wait(false),
       m_handle(handle), m_peer_handle(0),
       m_recv_data_len(0), m_send_data_len(0), first_line_read_(false), parsed_(false),
       m_netio(netio) {
@@ -26,17 +27,8 @@ ProxyClient::~ProxyClient() {
         m_recv_data_len, m_send_data_len);
     m_netio->Close(m_handle);
     m_netio->Close(m_peer_handle);
-
-    while (!remote_write_queue_.empty()) {
-        xlib::Buffer* buffer = remote_write_queue_.front();
-        remote_write_queue_.pop_front();
-        delete buffer;
-    }
-    while (!client_write_queue_.empty()) {
-        xlib::Buffer* buffer = client_write_queue_.front();
-        client_write_queue_.pop_front();
-        delete buffer;
-    }
+    delete m_buffer;
+    delete m_peer_buffer;
 }
 
 int ProxyClient::Update(bool read, uint64_t handle) {
@@ -48,8 +40,8 @@ int ProxyClient::Update(bool read, uint64_t handle) {
         m_recv_data_len += (length > 0 ? length : 0);
     } else if (!read && handle == m_handle) {
         length = Write();
-        if (m_peer_reading_wait && client_write_queue_.empty()) {
-            INF("handle %lu, write, peer reading wait, peer read", handle);
+        if (m_peer_reading_wait && m_peer_buffer->Size() == 0) {
+            TRACE("handle %lu, write, peer reading wait, peer read", handle);
             length = PeerRead();
             m_send_data_len += (length > 0 ? length : 0);
         }
@@ -58,7 +50,7 @@ int ProxyClient::Update(bool read, uint64_t handle) {
         m_send_data_len += (length > 0 ? length : 0);
     } else if (!read && handle == m_peer_handle) {
         length = PeerWrite();
-        if (m_reading_wait && remote_write_queue_.empty()) {
+        if (m_reading_wait && m_buffer->Size() == 0) {
             length = Read();
             m_recv_data_len += (length > 0 ? length : 0);
         }
@@ -75,10 +67,10 @@ int ProxyClient::ParseRequest() {
     char last;
     std::stringbuf* buf;
     while (true) {
-        int nread = m_netio->Recv(m_handle, reinterpret_cast<char*>(buffer), 1);
-        if (nread == 0) {
+        int n = m_netio->Recv(m_handle, reinterpret_cast<char*>(buffer), 1);
+        if (n == 0) {
             return 0;
-        } else if (nread == -1) {
+        } else if (n == -1) {
             return -1;
         }
         buf = &first_buf_;
@@ -96,13 +88,10 @@ int ProxyClient::ParseRequest() {
         if (first_line_read_) {
             buf = &parsed_buf_;
         }
-        // TRACE("%c", last);
         buf->sputn(buffer, 1);
     }
-    // TRACE("\n");
     std::vector<std::string> vec;
     xlib::Split(first_buf_.str(), " ", &vec);
-    // DBG("vec size %zu, %s", vec.size(), first_buf_.str().c_str())
     if (vec.size() < 2) {
         return -1;
     }
@@ -119,13 +108,11 @@ int ProxyClient::ParseRequest() {
     } else {
         std::vector<std::string> third;
         xlib::Split(vec[1], "/", &third);
-        // DBG("third size %zu, %s", third.size(), vec[1].c_str())
         if (third.size() < 2) {
             return -1;
         }
         std::vector<std::string> ot;
         xlib::Split(third[1], ":", &ot);
-        // DBG("ot size %zu, %s", ot.size(), third[1].c_str())
         if (ot.size() == 1) {
             host = ot[0];
             port = "80";
@@ -156,15 +143,15 @@ int ProxyClient::ParseRequest() {
     parsed_buf_.sputn(bt, 1);
     if ( proto == "https" ) {
         if (options->forward) {
-            remote_write_queue_.push_back(new xlib::Buffer(first_buf_.str().c_str(), first_buf_.str().size()));
-            remote_write_queue_.push_back(new xlib::Buffer(parsed_buf_.str().c_str(), parsed_buf_.str().size()));
+            m_buffer->Write(first_buf_.str().c_str());
+            m_buffer->Write(parsed_buf_.str().c_str());
         } else {
             std::string str = "HTTP/1.1 200 Connection established\r\n\r\n";
-            client_write_queue_.push_back(new xlib::Buffer(str.c_str(), str.size()));
+            m_peer_buffer->Write(str.c_str());
         }
     } else {
-        remote_write_queue_.push_back(new xlib::Buffer(first_buf_.str().c_str(), first_buf_.str().size()));
-        remote_write_queue_.push_back(new xlib::Buffer(parsed_buf_.str().c_str(), parsed_buf_.str().size()));
+       m_buffer->Write(first_buf_.str().c_str());
+       m_buffer->Write(parsed_buf_.str().c_str());
     }
     DBG("start connect %s,%s", host.c_str(), used_port.c_str());
     m_peer_handle = m_netio->ConnectPeer(ip, std::stoi(used_port));
@@ -187,19 +174,18 @@ int ProxyClient::ParseRequest() {
 int ProxyClient::Read() {
     int length = 0;
     int read_num = 0;
-    while (remote_write_queue_.size() < MAX_QUEUE_SIZE) {
-        int nread = m_netio->Recv(m_handle, m_read_buffer, sizeof(m_read_buffer)-1);
-        if (nread == 0) {
+    while (m_buffer->Cap() > 0) {
+        int n = m_netio->Recv(m_handle, m_buffer->Next(), m_buffer->Cap());
+        if (n == 0) {
             m_reading_wait = false;
             break;
-        } else if (nread == -1) {
-            DBG("client read error %s,code:%d", strerror(errno), nread);
+        } else if (n < 0) {
+            DBG("client read error %s,code:%d", strerror(errno), n);
             return -1;
-        }
-        length += nread;
-        if (nread > 0) {
+        } else if (n > 0) {
+            length += n;
             read_num++;
-            remote_write_queue_.push_back(new xlib::Buffer(m_read_buffer, nread));
+            m_buffer->WriteN(n);
             int ret = PeerWrite();
             if (ret <= 0) {
                 DBG("reading wait error %s,code:%d", strerror(errno), ret);
@@ -213,44 +199,35 @@ int ProxyClient::Read() {
 }
 
 int ProxyClient::Write() {
-    int length = 0;
-    while (!client_write_queue_.empty()) {
-        xlib::Buffer* buffer = client_write_queue_.front();
-        int written = m_netio->Send(m_handle, buffer->Bytes(), buffer->Length());
-        if (written == 0) {
-            break;
-        } else if (written == -1) {
-            DBG("client write error %s,code:%d", strerror(errno), written);
-            return -1;
-        }
-        buffer->Add(written);
-        if (buffer->Length() == 0) {
-            client_write_queue_.pop_front();
-            delete buffer;
-        } else {
-            break;
-        }
-        length += written;
+    if (m_peer_buffer->Size() <= 0) {
+        return 0;
     }
-    return length;
+    int written = m_netio->Send(m_handle, m_peer_buffer->Bytes(), m_peer_buffer->Size());
+    if (written == 0) {
+        return 0;
+    } else if (written == -1) {
+        DBG("client write error %s,code:%d", strerror(errno), written);
+        return -1;
+    }
+    m_peer_buffer->ReadN(written);
+    return written;
 }
 
 int ProxyClient::PeerRead() {
     int length = 0;
     int read_num = 0;
-    while (client_write_queue_.size() < MAX_QUEUE_SIZE) {
-        int nread = m_netio->Recv(m_peer_handle, m_read_buffer, sizeof(m_read_buffer)-1);
-        if (nread == 0) {
+    while (m_peer_buffer->Cap() > 0) {
+        int n = m_netio->Recv(m_peer_handle, m_peer_buffer->Next(), m_peer_buffer->Cap());
+        if (n == 0) {
             m_peer_reading_wait = false;
             break;
-        } else if (nread== -1) {
-            DBG("remote read error %s,code:%d", strerror(errno), nread);
+        } else if (n < 0) {
+            DBG("remote read error %s,code:%d", strerror(errno), n);
             return -1;
-        }
-        length += nread;
-        if (nread > 0) {
+        } else if (n > 0) {
+            length += n;
             read_num++;
-            client_write_queue_.push_back(new xlib::Buffer(m_read_buffer, nread));
+            m_peer_buffer->WriteN(n);
             int ret = Write();
             if (ret <= 0) {
                 DBG("peer reading wait error %s,code:%d", strerror(errno), ret);
@@ -265,24 +242,16 @@ int ProxyClient::PeerRead() {
 }
 
 int ProxyClient::PeerWrite() {
-    int length = 0;
-    while (!remote_write_queue_.empty()) {
-        xlib::Buffer* buffer = remote_write_queue_.front();
-        int written = m_netio->Send(m_peer_handle, buffer->Bytes(), buffer->Length());
-        if (written == 0) {
-            break;
-        } else if (written == -1) {
-            DBG("remote write error %s,code:%d", strerror(errno), written);
-            return -1;
-        }
-        buffer->Add(written);
-        if (buffer->Length() == 0) {
-            remote_write_queue_.pop_front();
-            delete buffer;
-        } else {
-            break;
-        }
-        length += written;
+    if (m_buffer->Size() <= 0) {
+        return 0;
     }
-    return length;
+    int written = m_netio->Send(m_peer_handle, m_buffer->Bytes(), m_buffer->Size());
+    if (written == 0) {
+        return 0;
+    } else if (written == -1) {
+        DBG("remote write error %s,code:%d", strerror(errno), written);
+        return -1;
+    }
+    m_buffer->ReadN(written);
+    return written;
 }
