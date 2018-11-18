@@ -12,8 +12,6 @@
 
 namespace xlib {
 
-#define ARRAYSIZE(a) (sizeof(a) / sizeof(*(a)))
-
 static const char*  g_priority_str[] = { "NULL", "TRACE", "DEBUG", "INFO", "ERROR", "FATAL" };
 
 Log::Log() : m_log_priority(LOG_PRIORITY_INFO), m_log_fd(-1) {

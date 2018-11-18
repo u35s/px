@@ -13,6 +13,7 @@
 #include "xlib/net_poll.h"
 #include "xlib/log.h"
 #include "xlib/time.h"
+#include "xlib/trace.h"
 #include "server/ps.h"
 
 #if defined(__linux__)
@@ -22,6 +23,55 @@
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined (__NetBSD__)
     #include "xlib/net_kqueue.h"
 #endif
+
+static struct {
+    int32_t _stop;
+} g_app_events = { 0 };
+
+static const struct {
+        int number;
+        const char* name;
+    } g_failure_signals[] = {
+        { SIGSEGV, "SIGSEGV" },
+        { SIGILL,  "SIGILL"  },
+        { SIGFPE,  "SIGFPE"  },
+        { SIGABRT, "SIGABRT" },
+        { SIGBUS,  "SIGBUS"  },
+        { SIGTERM, "SIGTERM" }
+    };
+
+static struct sigaction g_sigaction_bak[ARRAYSIZE(g_failure_signals)];
+
+void on_error_signal(int signum, siginfo_t* siginfo, void* ucontext) {
+    // 获取信号名
+    const char* signame = "";
+    uint32_t i = 0;
+    for (; i < ARRAYSIZE(g_failure_signals); i++) {
+        if (g_failure_signals[i].number == signum) {
+            signame = g_failure_signals[i].name;
+            break;
+        }
+    }
+    ERR("recive signal %d, %s", signum, signame);
+    xlib::PrintStack();
+
+    // 恢复默认处理
+    sigaction(signum, &g_sigaction_bak[i], NULL);
+    kill(getpid(), signum);
+}
+
+// 错误信号处理
+void init_error_signal() {
+    struct sigaction sig_action;
+    memset(&sig_action, 0, sizeof(sig_action));
+    sigemptyset(&sig_action.sa_mask);
+    sig_action.sa_flags |= SA_SIGINFO;
+    sig_action.sa_sigaction = &on_error_signal;
+
+    for (uint32_t i = 0; i < ARRAYSIZE(g_failure_signals); i++) {
+        sigaction(g_failure_signals[i].number, &sig_action, &g_sigaction_bak[i]);
+    }
+}
 
 void on_stop(int32_t signal) {
     g_app_events._stop = signal;
@@ -69,11 +119,19 @@ void ProxyServer::Init(Options* options) {
     if (xlib::INVAILD_NETADDR == netaddr) {
         exit(0);
     }
+    // 注册忽略的信号
+    // 无读者的管道写
+    // 往一个已经接收到FIN的套接中写是允许的，接收到的FIN仅仅代表对方不再发送数据。并不能代表我不能发送数据给对方。
+    // 往一个FIN结束的进程中写(write)，对方会发送一个RST字段过来，TCP重置。如果再调用write就会产生SIGPIPE信号
     signal(SIGPIPE, SIG_IGN);
+    // 注册停止处理函数
     signal(SIGHUP, on_stop);
     signal(SIGINT, on_stop);
+    // 注册自定义函数
     signal(SIGUSR1, on_log_level);
     signal(SIGUSR2, on_log_level);
+    // 注册错误处理函数
+    init_error_signal();
     setbuf(stdout, NULL);
 }
 

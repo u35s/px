@@ -9,6 +9,8 @@
 
 namespace xlib {
 
+#define ARRAYSIZE(a) (sizeof(a) / sizeof(*(a)))
+
 #define TRACE(fmt, ...) xlib::Log::Instance().Write(xlib::LOG_PRIORITY_TRACE, fmt, ##__VA_ARGS__);
 #define DBG(fmt, ...)   xlib::Log::Instance().Write(xlib::LOG_PRIORITY_DEBUG, fmt, ##__VA_ARGS__);
 #define INF(fmt, ...)   xlib::Log::Instance().Write(xlib::LOG_PRIORITY_INFO, fmt, ##__VA_ARGS__);

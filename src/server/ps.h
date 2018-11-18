@@ -12,10 +12,6 @@
 #include "server/pc.h"
 #include "server/options.h"
 
-static struct {
-    int32_t _stop;
-} g_app_events = { 0 };
-
 class ProxyServer {
  protected:
     ProxyServer();
