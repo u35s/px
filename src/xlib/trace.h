@@ -9,8 +9,6 @@ namespace xlib {
 
 void PrintStack();
 
-void TraceStack();
-
 }  // namespace xlib
 
 #endif  // XLIB_TRACE_H_
