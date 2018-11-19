@@ -41,11 +41,10 @@ class ProxyClient{
     int m_recv_data_len;
     int m_send_data_len;
 
-    bool first_line_read_;
-    bool parsed_;
-
-    std::stringbuf first_buf_;
-    std::stringbuf parsed_buf_;
+    bool m_first_line_read;
+    bool m_parsed;
+    std::string m_first_line_buf;
+    std::string m_parse_buf;
 
     xlib::NetIO* m_netio;
 };

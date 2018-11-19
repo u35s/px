@@ -16,7 +16,7 @@ ProxyClient::ProxyClient(const uint64_t handle, xlib::NetIO* netio)
     : m_buffer(new xlib::Buffer(1<<12)), m_peer_buffer(new xlib::Buffer(1<<12)),
       m_reading_wait(false), m_peer_reading_wait(false),
       m_handle(handle), m_peer_handle(0),
-      m_recv_data_len(0), m_send_data_len(0), first_line_read_(false), parsed_(false),
+      m_recv_data_len(0), m_send_data_len(0), m_first_line_read(false), m_parsed(false),
       m_netio(netio) {
 }
 
@@ -34,7 +34,7 @@ ProxyClient::~ProxyClient() {
 
 int ProxyClient::Update(bool read, uint64_t handle) {
     int length = 0;
-    if (!parsed_) {
+    if (!m_parsed) {
         length = ParseRequest();
     } else if (read && handle == m_handle) {
         length = Read();
@@ -66,7 +66,7 @@ uint64_t ProxyClient::GetPeerHandle() {
 int ProxyClient::ParseRequest() {
     char buffer[1];
     char last;
-    std::stringbuf* buf;
+    std::string* buf;
     while (true) {
         int n = m_netio->Recv(m_handle, reinterpret_cast<char*>(buffer), 1);
         if (n == 0) {
@@ -74,25 +74,25 @@ int ProxyClient::ParseRequest() {
         } else if (n == -1) {
             return -1;
         }
-        buf = &first_buf_;
+        buf = &m_first_line_buf;
         if (*buffer == '\r') {
             continue;
         } else if (*buffer == '\n') {
-            if (!first_line_read_) {
-                first_line_read_ = true;
+            if (!m_first_line_read) {
+                m_first_line_read = true;
                 continue;
             } else if (last == '\n') {
                 break;
             }
         }
         last = *buffer;
-        if (first_line_read_) {
-            buf = &parsed_buf_;
+        if (m_first_line_read) {
+            buf = &m_parse_buf;
         }
-        buf->sputn(buffer, 1);
+        buf->append(1, last);
     }
     std::vector<std::string> vec;
-    xlib::Split(first_buf_.str(), " ", &vec);
+    xlib::Split(m_first_line_buf, " ", &vec);
     if (vec.size() < 2) {
         return -1;
     }
@@ -139,20 +139,20 @@ int ProxyClient::ParseRequest() {
         return -1;
     }
 
-    char bt[1] = {'\n'};
-    first_buf_.sputn(bt, 1);
-    parsed_buf_.sputn(bt, 1);
+    m_first_line_buf.append(1, '\n');
+    m_parse_buf.append(1, '\n');
+
     if ( proto == "https" ) {
         if (options->forward) {
-            m_buffer->Write(first_buf_.str().c_str());
-            m_buffer->Write(parsed_buf_.str().c_str());
+            m_buffer->Write(m_first_line_buf.c_str());
+            m_buffer->Write(m_parse_buf.c_str());
         } else {
             std::string str = "HTTP/1.1 200 Connection established\r\n\r\n";
             m_peer_buffer->Write(str.c_str());
         }
     } else {
-       m_buffer->Write(first_buf_.str().c_str());
-       m_buffer->Write(parsed_buf_.str().c_str());
+       m_buffer->Write(m_first_line_buf.c_str());
+       m_buffer->Write(m_parse_buf.c_str());
     }
     DBG("start connect %s,%s", host.c_str(), used_port.c_str());
     m_peer_handle = m_netio->ConnectPeer(ip, xlib::Atoi(used_port.c_str()));
@@ -161,7 +161,7 @@ int ProxyClient::ParseRequest() {
     }
     DBG("connect ok, peer handle, %lu", m_peer_handle);
     ProxyServer::Instance().AddPeerClient(m_handle, m_peer_handle);
-    parsed_ = true;
+    m_parsed = true;
     int length = 0;
 #if defined(__linux__)
     length = Write();
