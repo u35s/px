@@ -5,6 +5,7 @@
 #ifndef XLIB_LOG_H_
 #define XLIB_LOG_H_
 
+#include "string"
 #include "xlib/time.h"
 
 namespace xlib {
@@ -39,12 +40,12 @@ class Log {
 
     void Write(LOG_PRIORITY pri, const char* fmt, ...);
     void SetLogPriority(LOG_PRIORITY pri);
-    int  SetLogFile(char* file);
+    int  SetLogFile(std::string file);
     void Close();
  private:
     LOG_PRIORITY m_log_priority;
-    int m_log_fd;
-    char* m_log_file;
+    int          m_log_fd;
+    std::string  m_log_file;
 };
 
 }  // namespace xlib

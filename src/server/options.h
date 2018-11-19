@@ -5,24 +5,23 @@
 #ifndef SERVER_OPTIONS_H_
 #define SERVER_OPTIONS_H_
 
-#include <memory.h>
 #include <stdint.h>
+#include <string>
 
 struct Options {
-    Options() {
-        memset(this, 0, sizeof(Options));
-    }
+    Options();
+
     void Init(int argc, char **argv);
 
-    char  forward_domain[255];
-    char  forward_port[5];
-    bool  forward;
-    uint32_t listen_port;
+    bool         daemon;
+    uint32_t     listen_port;
 
-    bool  daemon;
-    char  log_file[255];
+    bool         forward;
+    std::string  forward_port;
+    std::string  forward_domain;
 
-    uint32_t log_level;
+    uint32_t     log_level;
+    std::string  log_file;
 };
 
 #endif  // SERVER_OPTIONS_H_

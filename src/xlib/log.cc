@@ -28,10 +28,10 @@ void Log::Close() {
     }
 }
 
-int  Log::SetLogFile(char* file) {
+int  Log::SetLogFile(std::string file) {
     Close();
     m_log_file = file;
-    int fd = open(m_log_file, O_CREAT | O_APPEND | O_RDWR);
+    int fd = open(m_log_file.c_str(), O_CREAT | O_APPEND | O_RDWR);
     if (fd < 0) {
         ERR("set log file, open faild");
     } else {

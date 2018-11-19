@@ -11,6 +11,18 @@
 #include "xlib/string.h"
 #include "xlib/conv.h"
 
+Options::Options() {
+    daemon          = false;
+    listen_port     = 1080;
+
+    forward         = false;
+    forward_port    = "1079";
+    forward_domain  = "127.0.0.1";
+
+    log_level       = 0;
+    log_file        = "";
+}
+
 void Options::Init(int argc, char **argv) {
     int opt  = 0;
     while ( -1 != (opt = getopt(argc, argv, "dl:p:h:f:")) ) {
@@ -30,13 +42,13 @@ void Options::Init(int argc, char **argv) {
                 xlib::Split(host, ":", &vec);
                 if (vec.size() == 2) {
                     forward = true;
-                    snprintf(forward_domain, sizeof(forward_domain), "%s", vec[0].c_str());
-                    snprintf(forward_port, sizeof(forward_port), "%s", vec[1].c_str());
+                    forward_domain = vec[0];
+                    forward_port = vec[1];
                 }
                 break;
             }
             case 'f':
-                snprintf(log_file, sizeof(log_file), "%s", optarg);
+                log_file = optarg;
                 break;
         }
     }

@@ -132,8 +132,8 @@ int ProxyClient::ParseRequest() {
     const Options* options = ProxyServer::Instance().GetOptions();
     // options = NULL; // auto 指针常量失效
     if (options->forward) {
-        used_host = std::string(options->forward_domain);
-        used_port = std::string(options->forward_port);
+        used_host = options->forward_domain;
+        used_port = options->forward_port;
     }
     if (xlib::GetIpByDomain(used_host.c_str(), ip) < 0) {
         return -1;
@@ -155,7 +155,7 @@ int ProxyClient::ParseRequest() {
        m_buffer->Write(m_parse_buf.c_str());
     }
     DBG("start connect %s,%s", host.c_str(), used_port.c_str());
-    m_peer_handle = m_netio->ConnectPeer(ip, xlib::Atoi(used_port.c_str()));
+    m_peer_handle = m_netio->ConnectPeer(ip, xlib::Stoi(used_port));
     if (m_peer_handle <= 0) {
         return -1;
     }
