@@ -12,11 +12,11 @@ namespace xlib {
 
 #define ARRAYSIZE(a) (sizeof(a) / sizeof(*(a)))
 
-#define TRACE(fmt, ...) xlib::Log::Instance().Write(xlib::LOG_PRIORITY_TRACE, fmt, ##__VA_ARGS__);
-#define DBG(fmt, ...)   xlib::Log::Instance().Write(xlib::LOG_PRIORITY_DEBUG, fmt, ##__VA_ARGS__);
-#define INF(fmt, ...)   xlib::Log::Instance().Write(xlib::LOG_PRIORITY_INFO, fmt, ##__VA_ARGS__);
-#define ERR(fmt, ...)   xlib::Log::Instance().Write(xlib::LOG_PRIORITY_ERROR, fmt, ##__VA_ARGS__);
-#define FATAL(fmt, ...) xlib::Log::Instance().Write(xlib::LOG_PRIORITY_FATAL, fmt, ##__VA_ARGS__);
+#define TRACE(fmt, ...) xlib::Log::Instance().Write(xlib::LOG_PRIORITY_TRACE, __FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);  // NOLINT
+#define DBG(fmt, ...)   xlib::Log::Instance().Write(xlib::LOG_PRIORITY_DEBUG, __FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);  // NOLINT
+#define INF(fmt, ...)   xlib::Log::Instance().Write(xlib::LOG_PRIORITY_INFO,  __FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);  // NOLINT
+#define ERR(fmt, ...)   xlib::Log::Instance().Write(xlib::LOG_PRIORITY_ERROR, __FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);  // NOLINT
+#define FATAL(fmt, ...) xlib::Log::Instance().Write(xlib::LOG_PRIORITY_FATAL, __FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);  // NOLINT
 
 typedef enum {
     LOG_PRIORITY_NULL = 0,
@@ -38,7 +38,8 @@ class Log {
         return s_log_instance;
     }
 
-    void Write(LOG_PRIORITY pri, const char* fmt, ...);
+    void Write(LOG_PRIORITY pri, const char* file, uint32_t line,
+        const char* function, const char* fmt, ...);
     void SetLogPriority(LOG_PRIORITY pri);
     int  SetLogFile(std::string file);
     void Close();

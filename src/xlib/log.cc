@@ -44,14 +44,16 @@ void Log::SetLogPriority(LOG_PRIORITY pri) {
     m_log_priority = pri;
 }
 
-void Log::Write(LOG_PRIORITY pri, const char* fmt, ...) {
+void Log::Write(LOG_PRIORITY pri, const char* file, uint32_t line,
+    const char* function, const char* fmt, ...) {
     if (pri < m_log_priority) {
         return;
     }
     static char buff[4096] = {0};
     int pre_len = 0;
-    pre_len = snprintf(buff, ARRAYSIZE(buff), "[%s][%s] ",
-        xlib::Time::Now().String().c_str(), g_priority_str[pri]);
+    pre_len = snprintf(buff, ARRAYSIZE(buff), "[%s][%s][%d][%s:%d:%s] ",
+        xlib::Time::Now().String().c_str(), g_priority_str[pri],
+        getpid(), file, line, function);
     if (pre_len < 0) {
         pre_len = 0;
     }
