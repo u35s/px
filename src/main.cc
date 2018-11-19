@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
     if (options.daemon == true) {
         xlib::Daemon();
     }
-    if (options.log_file.empty() == true) {
+    if (options.log_file.empty() == false) {
         xlib::Log::Instance().SetLogFile(options.log_file);
     }
     if (options.log_level != 0) {
