@@ -154,7 +154,7 @@ int ProxyClient::ParseRequest() {
        m_buffer->Write(m_first_line_buf.c_str());
        m_buffer->Write(m_parse_buf.c_str());
     }
-    DBG("start connect %s,%s", host.c_str(), used_port.c_str());
+    SDBG("start connect %s,%s", host, used_port);
     m_peer_handle = m_netio->ConnectPeer(ip, xlib::Stoi(used_port));
     if (m_peer_handle <= 0) {
         return -1;

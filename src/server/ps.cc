@@ -78,6 +78,15 @@ void on_stop(int32_t signal) {
     g_app_events._stop = signal;
 }
 
+// (test_param_pass(char const*, bool, int, unsigned int, unsigned long, float, double)+0x2a) [0x40cff0]
+// uint32_t unsigned int
+// uint64_t unsigned long
+// stdint.h 以stdint.h为准
+void test_param_pass(const char* fmt,
+    bool, int, uint32_t, uint64_t, float, double) {
+    xlib::PrintStack();
+}
+
 void on_log_level(int signal) {
     xlib::LOG_PRIORITY log_level = xlib::LOG_PRIORITY_INFO;
     if (signal == SIGUSR2) {
@@ -85,6 +94,14 @@ void on_log_level(int signal) {
     }
     xlib::Log::Instance().SetLogPriority(log_level);
     INF("set log level %d", log_level);
+
+    bool      b = true;
+    int       i = 2;
+    uint32_t ui = 3;
+    uint64_t ul = 4;
+    float     f = 5.1;
+    double    d = 5.2;
+    test_param_pass("test param", b, i, ui, ul, f, d);
 }
 
 ProxyServer::ProxyServer()

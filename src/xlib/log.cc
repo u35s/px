@@ -44,8 +44,8 @@ void Log::SetLogPriority(LOG_PRIORITY pri) {
     m_log_priority = pri;
 }
 
-void Log::Write(LOG_PRIORITY pri, const char* file, uint32_t line,
-    const char* function, const char* fmt, ...) {
+void Log::Write(LOG_PRIORITY pri, const char* file, uint32_t line, const char* function,
+    const char* fmt, ...) {
     if (pri < m_log_priority) {
         return;
     }
