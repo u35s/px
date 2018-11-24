@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
         xlib::Log::Instance().SetLogPriority(xlib::LOG_PRIORITY(options.log_level));
     }
 
-    SINF("log level ##,local port ##, host ##:##",
+    XINF("log level ##,local port ##, host ##:##",
         options.log_level, options.listen_port,
         options.forward_domain, options.forward_port);
 

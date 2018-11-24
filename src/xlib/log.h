@@ -51,11 +51,11 @@ namespace xlib {
 
 #define ARRAYSIZE(a) (sizeof(a) / sizeof(*(a)))
 
-#define STRACE(fmt, ...) xlib::Log::Instance().SWrite(xlib::LOG_PRIORITY_TRACE, __FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);  // NOLINT
-#define SDBG(fmt, ...)   xlib::Log::Instance().SWrite(xlib::LOG_PRIORITY_DEBUG, __FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);  // NOLINT
-#define SINF(fmt, ...)   xlib::Log::Instance().SWrite(xlib::LOG_PRIORITY_INFO,  __FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);  // NOLINT
-#define SERR(fmt, ...)   xlib::Log::Instance().SWrite(xlib::LOG_PRIORITY_ERROR, __FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);  // NOLINT
-#define SFATAL(fmt, ...) xlib::Log::Instance().SWrite(xlib::LOG_PRIORITY_FATAL, __FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);  // NOLINT
+#define XTRACE(fmt, ...) xlib::Log::Instance().SWrite(xlib::LOG_PRIORITY_TRACE, __FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);  // NOLINT
+#define XDBG(fmt, ...)   xlib::Log::Instance().SWrite(xlib::LOG_PRIORITY_DEBUG, __FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);  // NOLINT
+#define XINF(fmt, ...)   xlib::Log::Instance().SWrite(xlib::LOG_PRIORITY_INFO,  __FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);  // NOLINT
+#define XERR(fmt, ...)   xlib::Log::Instance().SWrite(xlib::LOG_PRIORITY_ERROR, __FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);  // NOLINT
+#define XFATAL(fmt, ...) xlib::Log::Instance().SWrite(xlib::LOG_PRIORITY_FATAL, __FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);  // NOLINT
 
 #define TRACE(fmt, ...) xlib::Log::Instance().Write(xlib::LOG_PRIORITY_TRACE, __FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);  // NOLINT
 #define DBG(fmt, ...)   xlib::Log::Instance().Write(xlib::LOG_PRIORITY_DEBUG, __FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);  // NOLINT
