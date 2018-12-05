@@ -13,6 +13,7 @@ px能让你自定义规则,以实现国内国外智能上网.
 yum install gcc-c++ cmake
 git clone https://github.com/u35s/px.git
 mkdir build && cd build && cmake ../px  && make 
+不使用共享库用 cmake -DCMAKE_EXE_LINKER_FLAGS="-static -static-libgcc -static-libstdc++ " .. 代替 cmake ..
 ```
 # 使用
 
