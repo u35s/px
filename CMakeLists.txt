@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 
 project(px)
 
-add_definitions(-std=c++11)
+add_definitions(-std=c++11 -Wall)
 
 include_directories(src)
 
