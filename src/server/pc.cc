@@ -9,6 +9,7 @@
 #include "xlib/string.h"
 #include "xlib/conv.h"
 #include "xlib/log.h"
+#include "xlib/base64.h"
 #include "server/ps.h"
 #include "server/pc.h"
 
@@ -63,6 +64,22 @@ uint64_t ProxyClient::GetPeerHandle() {
     return m_peer_handle;
 }
 
+bool ProxyClient::VerifyAuthorization() {
+    std::vector<std::string> vec;
+    std::string flag("Proxy-Authorization: Basic ");
+    xlib::Split(m_parse_buf, "\n", &vec);
+    for (size_t i = 0; i < vec.size(); ++i) {
+        std::size_t found = vec[i].find(flag);
+        if (found != std::string::npos) {
+            m_authorization = xlib::Base64Decode(vec[i].substr(flag.size()));
+        }
+    }
+    const Options* options = ProxyServer::Instance().GetOptions();
+    bool  pass =  options->auth == m_authorization;
+    XDBG("authorization:##,##", m_authorization, pass);
+    return pass;
+}
+
 int ProxyClient::ParseRequest() {
     char buffer[1];
     char last;
@@ -90,6 +107,9 @@ int ProxyClient::ParseRequest() {
             buf = &m_parse_buf;
         }
         buf->append(1, last);
+    }
+    if (!VerifyAuthorization()) {
+        return -1;
     }
     std::vector<std::string> vec;
     xlib::Split(m_first_line_buf, " ", &vec);

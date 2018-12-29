@@ -22,6 +22,7 @@ struct Options {
 
     uint32_t     log_level;
     std::string  log_file;
+    std::string  auth;
 };
 
 #endif  // SERVER_OPTIONS_H_

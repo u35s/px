@@ -21,12 +21,16 @@ Options::Options() {
 
     log_level       = 0;
     log_file        = "";
+    auth            = "";
 }
 
 void Options::Init(int argc, char **argv) {
     int opt  = 0;
-    while ( -1 != (opt = getopt(argc, argv, "dl:p:h:f:")) ) {
+    while ( -1 != (opt = getopt(argc, argv, "dl:p:h:f:a:")) ) {
         switch (opt) {
+            case 'a':
+                auth = optarg;
+                break;
             case 'd':
                 daemon = true;
                 break;

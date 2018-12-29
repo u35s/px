@@ -26,6 +26,7 @@ class ProxyClient{
     int PeerWrite();
     int PeerRead();
     int ParseRequest();
+    bool VerifyAuthorization();
 
     xlib::Buffer* m_buffer;
     xlib::Buffer* m_peer_buffer;
@@ -45,6 +46,7 @@ class ProxyClient{
     bool m_parsed;
     std::string m_first_line_buf;
     std::string m_parse_buf;
+    std::string m_authorization;
 
     xlib::NetIO* m_netio;
 };
